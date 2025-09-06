@@ -107,7 +107,6 @@ export default function BrowserPage() {
                 ref={webviewRef as any}
                 src={activeTab.url}
                 className="w-full h-full rounded-2xl"
-                isDark={isDark}
                 onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))}
                 onTitleChange={(t) => setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))}
               />
@@ -121,7 +120,7 @@ export default function BrowserPage() {
           {/* Bouton de basculement de thème */}
           <button
             onClick={toggleTheme}
-            className="fixed bottom-4 left-4 z-50 size-10 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 shadow-lg transition-colors"
+            className="fixed bottom-4 left-4 z-50 size-10 flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-400 transition-colors"
             title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
           >
             {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}

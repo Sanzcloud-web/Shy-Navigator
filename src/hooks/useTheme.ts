@@ -47,13 +47,17 @@ export function useTheme() {
   }, [isDark])
 
   const setThemeMode = (newTheme: Theme) => {
+    console.log('🎯 useTheme: Setting theme mode to', newTheme.toUpperCase())
     setTheme(newTheme)
-    setIsDark(calculateIsDark(newTheme))
+    const newIsDark = calculateIsDark(newTheme)
+    console.log('🌙 useTheme: isDark will be', newIsDark)
+    setIsDark(newIsDark)
     localStorage.setItem('theme', newTheme)
   }
 
   const toggleTheme = () => {
     const newTheme = isDark ? 'light' : 'dark'
+    console.log('🌓 useTheme: Toggling theme from', isDark ? 'DARK' : 'LIGHT', 'to', newTheme.toUpperCase())
     setThemeMode(newTheme)
   }
 
