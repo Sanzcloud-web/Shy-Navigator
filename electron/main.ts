@@ -15,7 +15,11 @@ function createWindow() {
       nodeIntegration: false,
       sandbox: false,
       webviewTag: true
-    }
+    },
+    // Style de barre de titre minimal façon Arc
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarOverlay: process.platform === 'darwin' ? { color: '#0b0b0d', symbolColor: '#ffffff', height: 40 } as any : undefined,
+    backgroundColor: '#111113'
   })
 
   if (isDev) {
@@ -38,4 +42,3 @@ app.whenReady().then(createWindow)
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit()
 })
-

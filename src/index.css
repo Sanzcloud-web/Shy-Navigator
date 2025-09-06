@@ -11,3 +11,10 @@ html, body, #root {
   color-scheme: dark;
 }
 
+/* Window drag helpers when title bar is hidden */
+.drag-region {
+  -webkit-app-region: drag;
+}
+.no-drag {
+  -webkit-app-region: no-drag;
+}
