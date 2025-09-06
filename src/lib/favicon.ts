@@ -34,6 +34,68 @@ export function getFaviconUrl(url: string): string {
 }
 
 /**
+ * Génère l'URL de recherche pour un site donné
+ */
+export function getSiteSearchUrl(siteUrl: string, query: string): string {
+  try {
+    const urlObj = new URL(siteUrl.startsWith('http') ? siteUrl : `https://${siteUrl}`)
+    const domain = urlObj.hostname.toLowerCase()
+    
+    const encodedQuery = encodeURIComponent(query)
+    
+    // Mapping des sites populaires vers leurs URLs de recherche
+    const searchMappings: Record<string, string> = {
+      'www.youtube.com': `https://www.youtube.com/results?search_query=${encodedQuery}`,
+      'youtube.com': `https://www.youtube.com/results?search_query=${encodedQuery}`,
+      'www.google.com': `https://www.google.com/search?q=${encodedQuery}`,
+      'google.com': `https://www.google.com/search?q=${encodedQuery}`,
+      'www.github.com': `https://github.com/search?q=${encodedQuery}`,
+      'github.com': `https://github.com/search?q=${encodedQuery}`,
+      'www.wikipedia.org': `https://www.wikipedia.org/search-redirect.php?search=${encodedQuery}`,
+      'wikipedia.org': `https://www.wikipedia.org/search-redirect.php?search=${encodedQuery}`,
+      'www.amazon.com': `https://www.amazon.com/s?k=${encodedQuery}`,
+      'amazon.com': `https://www.amazon.com/s?k=${encodedQuery}`,
+      'www.reddit.com': `https://www.reddit.com/search?q=${encodedQuery}`,
+      'reddit.com': `https://www.reddit.com/search?q=${encodedQuery}`,
+      'www.twitter.com': `https://twitter.com/search?q=${encodedQuery}`,
+      'twitter.com': `https://twitter.com/search?q=${encodedQuery}`,
+      'x.com': `https://x.com/search?q=${encodedQuery}`,
+      'www.stackoverflow.com': `https://stackoverflow.com/search?q=${encodedQuery}`,
+      'stackoverflow.com': `https://stackoverflow.com/search?q=${encodedQuery}`
+    }
+    
+    return searchMappings[domain] || `${siteUrl}?q=${encodedQuery}`
+  } catch {
+    return `${siteUrl}?q=${encodeURIComponent(query)}`
+  }
+}
+
+/**
+ * Vérifie si un site supporte la recherche directe
+ */
+export function supportsSiteSearch(siteUrl: string): boolean {
+  try {
+    const urlObj = new URL(siteUrl.startsWith('http') ? siteUrl : `https://${siteUrl}`)
+    const domain = urlObj.hostname.toLowerCase()
+    
+    const supportedSites = [
+      'www.youtube.com', 'youtube.com',
+      'www.google.com', 'google.com', 
+      'www.github.com', 'github.com',
+      'www.wikipedia.org', 'wikipedia.org',
+      'www.amazon.com', 'amazon.com',
+      'www.reddit.com', 'reddit.com',
+      'www.twitter.com', 'twitter.com', 'x.com',
+      'www.stackoverflow.com', 'stackoverflow.com'
+    ]
+    
+    return supportedSites.includes(domain)
+  } catch {
+    return false
+  }
+}
+
+/**
  * Extrait le nom de domaine d'une URL pour l'affichage
  */
 export function getDomainName(url: string): string {

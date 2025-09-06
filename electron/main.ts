@@ -1,6 +1,7 @@
 import { app, BrowserWindow } from 'electron'
 import * as path from 'node:path'
 import * as url from 'node:url'
+import 'dotenv/config'
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL
 
