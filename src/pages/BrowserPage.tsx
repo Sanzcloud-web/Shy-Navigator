@@ -44,7 +44,17 @@ export default function BrowserPage() {
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       const isCmdT = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 't'
-      if (isCmdT) { e.preventDefault(); setPaletteOpen(true) }
+      const isCmdS = (e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 's'
+      
+      if (isCmdT) { 
+        e.preventDefault(); 
+        setPaletteOpen(true) 
+      }
+      
+      if (isCmdS) { 
+        e.preventDefault(); 
+        setCollapsed(v => !v) 
+      }
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
@@ -87,7 +97,7 @@ export default function BrowserPage() {
           <CommandPalette
             open={paletteOpen}
             onClose={() => setPaletteOpen(false)}
-            tabs={tabs}
+            tabs={tabs.map(t => ({ ...t, title: titleMap[t.id] || t.title }))}
             onSelectTab={(id) => { setActiveId(id) }}
             onSearch={(q) => {
               // Toujours ouvrir dans un nouvel onglet lorsqu'on recherche via la palette
