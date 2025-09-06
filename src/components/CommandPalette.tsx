@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { Search } from 'lucide-react'
 import type { Tab } from './Sidebar'
 
 type Props = {
@@ -115,12 +116,18 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!open) return
+      
+      const currentItems = [...filtered]
+      if (query.trim() && suggestions.length > 0) {
+        currentItems.push(...suggestions)
+      }
+      
       if (e.key === 'Escape') { e.preventDefault(); onClose(); }
-      if (e.key === 'ArrowDown') { e.preventDefault(); setIndex(i => Math.min(i + 1, allItems.length - 1)) }
+      if (e.key === 'ArrowDown') { e.preventDefault(); setIndex(i => Math.min(i + 1, currentItems.length - 1)) }
       if (e.key === 'ArrowUp') { e.preventDefault(); setIndex(i => Math.max(i - 1, 0)) }
       if (e.key === 'Enter') {
         e.preventDefault()
-        const selectedItem = allItems[index]
+        const selectedItem = currentItems[index]
         if (selectedItem) {
           if ('type' in selectedItem && selectedItem.type === 'suggestion') {
             onSearch(selectedItem.text)
@@ -135,7 +142,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [open, query, index, onSearch, onSelectTab, onClose, allItems])
+  }, [open, query, index, onSearch, onSelectTab, onClose, filtered, suggestions])
 
   if (!open) return null
 
@@ -165,7 +172,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
                   onClick={() => { onSearch(item.text); onClose() }}
                 >
                   <div className="flex items-center gap-3">
-                    <div className="text-neutral-400">🔍</div>
+                    <Search className="w-4 h-4 text-neutral-500 flex-shrink-0" />
                     <div className="truncate text-[15px]">{item.text}</div>
                   </div>
                   <div className="opacity-70 text-sm ml-4">Rechercher →</div>
