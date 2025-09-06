@@ -51,7 +51,7 @@ export default function BrowserPage() {
   }, [])
 
   return (
-    <div className="h-full w-full bg-neutral-950 text-neutral-100">
+    <div className="h-full w-full bg-white text-neutral-900">
       <TopBar
         collapsed={collapsed}
         onToggleSidebar={() => setCollapsed(v => !v)}

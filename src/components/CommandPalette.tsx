@@ -49,33 +49,33 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
 
   return (
     <div
-      className="fixed inset-0 bg-black/40 backdrop-blur-[2px] flex items-center justify-center z-50"
+      className="fixed inset-0 bg-black/20 backdrop-blur-[2px] flex items-center justify-center z-50"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-[720px] max-w-[90vw] bg-neutral-900/95 border border-neutral-800 rounded-xl shadow-xl" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="p-3 border-b border-neutral-800">
+      <div className="w-[760px] max-w-[92vw] bg-white text-neutral-900 border border-[#ECECEC] rounded-[20px] shadow-[0_2px_0_#ECECEC,0_16px_40px_rgba(0,0,0,0.08)]" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="p-4 border-b border-[#ECECEC]">
           <input
             ref={inputRef}
-            className="w-full bg-neutral-800 rounded px-3 py-3 outline-none focus:ring-2 focus:ring-indigo-500"
-            placeholder="Search or Enter URL…"
+            className="w-full bg-neutral-50 border border-[#ECECEC] rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-[18px] font-display"
+            placeholder="Rechercher ou entrer une URL…"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <div className="max-h-[50vh] overflow-y-auto p-2">
+        <div className="max-h-[50vh] overflow-y-auto p-3">
           {filtered.map((t, i) => (
             <div
               key={t.id}
-              className={`px-3 py-2 rounded cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-800'}`}
+              className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50'}`}
               onMouseEnter={() => setIndex(i)}
               onClick={() => { onSelectTab(t.id); onClose() }}
             >
-              <div className="truncate">{t.title || t.url}</div>
-              <div className="opacity-70 text-sm ml-4">Switch to Tab →</div>
+              <div className="truncate font-display text-[17px]">{t.title || t.url}</div>
+              <div className="opacity-70 text-sm ml-4">Aller à l’onglet →</div>
             </div>
           ))}
           {filtered.length === 0 && (
-            <div className="text-neutral-400 text-sm px-3 py-4">Aucun résultat. Appuie sur Entrée pour rechercher avec Google.</div>
+            <div className="text-neutral-500 text-sm px-3 py-4">Aucun résultat. Appuie sur Entrée pour rechercher avec Google.</div>
           )}
         </div>
       </div>
