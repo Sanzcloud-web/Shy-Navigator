@@ -1,0 +1,41 @@
+{
+  "name": "shy-navigator",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Navigateur custom basique (Electron + React + TS + Tailwind)",
+  "main": "dist-electron/main.js",
+  "scripts": {
+    "dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:ts\" \"npm:dev:electron:host\"",
+    "dev:renderer": "vite",
+    "dev:ts": "tsc -w -p electron/tsconfig.json",
+    "dev:electron": "VITE_DEV_SERVER_URL=http://localhost:5173 wait-on tcp:5173 dist-electron/main.js && electron dist-electron/main.js",
+    "dev:electron:host": "VITE_DEV_SERVER_URL=http://localhost:5173 wait-on tcp:5173 dist-electron/main.js && electron dist-electron/main.js",
+    "build": "rimraf dist dist-electron && tsc -p electron/tsconfig.json && vite build",
+    "start": "electron dist-electron/main.js",
+    "compose:dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:ts\"",
+    "lint": "echo 'no lint configured'"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "electron": "^30.0.8",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.30",
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@vitejs/plugin-react": "^4.3.1",
+    "autoprefixer": "^10.4.19",
+    "concurrently": "^8.2.2",
+    "nodemon": "^3.1.0",
+    "postcss": "^8.4.38",
+    "rimraf": "^5.0.7",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.5.4",
+    "vite": "^5.4.1",
+    "wait-on": "^7.2.0"
+  }
+}
