@@ -96,18 +96,22 @@ export default function BrowserPage() {
           onClose={closeTab}
           onNewTab={() => setPaletteOpen(true)}
         />
-        <div className="flex-1 relative">
+        <div className="flex-1 relative p-4">
           {activeTab ? (
-            <BrowserView
-              key={activeTab.id}
-              ref={webviewRef as any}
-              src={activeTab.url}
-              className="absolute inset-0"
-              onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))}
-              onTitleChange={(t) => setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))}
-            />
+            <div className="w-full h-full rounded-2xl overflow-hidden shadow-lg border border-neutral-200">
+              <BrowserView
+                key={activeTab.id}
+                ref={webviewRef as any}
+                src={activeTab.url}
+                className="w-full h-full rounded-2xl"
+                onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))}
+                onTitleChange={(t) => setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))}
+              />
+            </div>
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-neutral-400">Cmd+T pour rechercher…</div>
+            <div className="w-full h-full flex items-center justify-center text-neutral-400 bg-neutral-50 rounded-2xl">
+              Cmd+T pour rechercher…
+            </div>
           )}
 
           <CommandPalette

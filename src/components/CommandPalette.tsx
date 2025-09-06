@@ -29,6 +29,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
   const [loading, setLoading] = useState(false)
   const [siteSearchMode, setSiteSearchMode] = useState<{ url: string; siteName: string } | null>(null)
   const inputRef = useRef<HTMLInputElement | null>(null)
+  const containerRef = useRef<HTMLDivElement | null>(null)
   const abortControllerRef = useRef<AbortController | null>(null)
 
   useEffect(() => {
@@ -189,6 +190,29 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
     return items
   }, [filtered, suggestions, youtubeVideos, siteSearchMode, query])
 
+  // Scroll automatique pour suivre la sélection
+  useEffect(() => {
+    if (!containerRef.current || !open) return
+    
+    const selectedElement = containerRef.current.children[index] as HTMLElement
+    if (!selectedElement) return
+    
+    const container = containerRef.current
+    const containerRect = container.getBoundingClientRect()
+    const elementRect = selectedElement.getBoundingClientRect()
+    
+    const isAbove = elementRect.top < containerRect.top
+    const isBelow = elementRect.bottom > containerRect.bottom
+    
+    if (isAbove || isBelow) {
+      selectedElement.scrollIntoView({
+        behavior: 'smooth',
+        block: 'nearest',
+        inline: 'nearest'
+      })
+    }
+  }, [index, open, allItems.length])
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (!open) return
@@ -292,7 +316,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
             onChange={(e) => setQuery(e.target.value)}
           />
         </div>
-        <div className="max-h-[50vh] overflow-y-auto p-3">
+        <div ref={containerRef} className="max-h-[50vh] overflow-y-auto p-3">
           {allItems.map((item, i) => {
             console.log('🎯 Rendering item:', item)
             
