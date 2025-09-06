@@ -20,7 +20,9 @@ export default function BrowserPage() {
   function openTab(url?: string) {
     const u = normalizeUrl(url || '')
     const id = crypto.randomUUID()
-    const t: Tab = { id, url: u, title: 'New Tab', favicon: getFaviconUrl(u) }
+    const favicon = getFaviconUrl(u)
+    console.log('📂 openTab - URL:', u, 'Favicon:', favicon)
+    const t: Tab = { id, url: u, title: 'New Tab', favicon }
     setTabs(prev => [t, ...prev])
     setActiveId(id)
   }
@@ -39,6 +41,19 @@ export default function BrowserPage() {
     const u = normalizeUrl(url)
     setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
   }
+
+  // Mise à jour des favicons pour les onglets existants
+  useEffect(() => {
+    console.log('🔄 Updating existing tabs with favicons')
+    setTabs(prev => prev.map(tab => {
+      if (!tab.favicon && tab.url) {
+        const favicon = getFaviconUrl(tab.url)
+        console.log('🔄 Updating tab:', tab.url, 'with favicon:', favicon)
+        return { ...tab, favicon }
+      }
+      return tab
+    }))
+  }, [])
 
   // Ne force plus l'ouverture si 0 onglets; l'utilisateur peut fermer la palette
 
@@ -88,7 +103,7 @@ export default function BrowserPage() {
               ref={webviewRef as any}
               src={activeTab.url}
               className="absolute inset-0"
-              onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u } : t))}
+              onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))}
               onTitleChange={(t) => setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))}
             />
           ) : (

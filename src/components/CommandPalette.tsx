@@ -164,6 +164,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
         </div>
         <div className="max-h-[50vh] overflow-y-auto p-3">
           {allItems.map((item, i) => {
+            console.log('🎯 Rendering item:', item)
             if ('type' in item && item.type === 'suggestion') {
               return (
                 <div
@@ -181,6 +182,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
               )
             } else {
               const tab = item as Tab
+              console.log('📑 Rendering tab:', tab.title, 'favicon:', tab.favicon)
               return (
                 <div
                   key={tab.id}
@@ -189,28 +191,32 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
                   onClick={() => { onSelectTab(tab.id); onClose() }}
                 >
                   <div className="flex items-center gap-3 min-w-0 flex-1">
-                    {tab.favicon ? (
-                      <img 
-                        src={tab.favicon} 
-                        alt="" 
-                        className="w-6 h-6 rounded-sm flex-shrink-0"
-                        onError={(e) => {
-                          // Fallback vers l'icône par défaut si l'image ne charge pas
-                          const target = e.target as HTMLImageElement
-                          target.style.display = 'none'
-                        }}
-                      />
-                    ) : (
-                      <div className="w-6 h-6 rounded-sm bg-neutral-200 flex-shrink-0 flex items-center justify-center text-xs text-neutral-500">
-                        🌐
-                      </div>
-                    )}
+                    <div className="w-6 h-6 rounded-sm flex-shrink-0 relative">
+                      {tab.favicon ? (
+                        <img 
+                          src={tab.favicon} 
+                          alt="" 
+                          className="w-full h-full rounded-sm"
+                          onError={(e) => {
+                            // Remplacer par l'icône par défaut si l'image ne charge pas
+                            const target = e.target as HTMLImageElement
+                            const parent = target.parentElement!
+                            target.style.display = 'none'
+                            parent.innerHTML = '<div class="w-full h-full bg-neutral-200 rounded-sm flex items-center justify-center text-xs">🌐</div>'
+                          }}
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-neutral-200 rounded-sm flex items-center justify-center text-xs">
+                          🌐
+                        </div>
+                      )}
+                    </div>
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-[15px] font-medium">
                         {tab.title || getDomainName(tab.url)}
                       </div>
-                      {tab.title && (
-                        <div className="truncate text-xs text-neutral-500">
+                      {tab.title && tab.title !== getDomainName(tab.url) && (
+                        <div className="truncate text-xs opacity-70">
                           {getDomainName(tab.url)}
                         </div>
                       )}
