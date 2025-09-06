@@ -4,6 +4,7 @@ import BrowserView from '../components/BrowserView'
 import Sidebar, { type Tab } from '../components/Sidebar'
 import CommandPalette from '../components/CommandPalette'
 import { normalizeUrl } from '../lib/url'
+import { getFaviconUrl } from '../lib/favicon'
 import TopBar from '../components/TopBar'
 
 export default function BrowserPage() {
@@ -19,7 +20,7 @@ export default function BrowserPage() {
   function openTab(url?: string) {
     const u = normalizeUrl(url || '')
     const id = crypto.randomUUID()
-    const t: Tab = { id, url: u, title: 'New Tab' }
+    const t: Tab = { id, url: u, title: 'New Tab', favicon: getFaviconUrl(u) }
     setTabs(prev => [t, ...prev])
     setActiveId(id)
   }
@@ -36,7 +37,7 @@ export default function BrowserPage() {
   function navigateCurrent(url: string) {
     if (!activeId) { openTab(url); return }
     const u = normalizeUrl(url)
-    setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url: u } : t))
+    setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
   }
 
   // Ne force plus l'ouverture si 0 onglets; l'utilisateur peut fermer la palette

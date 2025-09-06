@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Search } from 'lucide-react'
 import type { Tab } from './Sidebar'
+import { getDomainName } from '../lib/favicon'
 
 type Props = {
   open: boolean
@@ -187,8 +188,35 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
                   onMouseEnter={() => setIndex(i)}
                   onClick={() => { onSelectTab(tab.id); onClose() }}
                 >
-                  <div className="truncate text-[15px] font-medium">{tab.title || tab.url}</div>
-                  <div className="opacity-70 text-sm ml-4">Aller à l'onglet →</div>
+                  <div className="flex items-center gap-3 min-w-0 flex-1">
+                    {tab.favicon ? (
+                      <img 
+                        src={tab.favicon} 
+                        alt="" 
+                        className="w-6 h-6 rounded-sm flex-shrink-0"
+                        onError={(e) => {
+                          // Fallback vers l'icône par défaut si l'image ne charge pas
+                          const target = e.target as HTMLImageElement
+                          target.style.display = 'none'
+                        }}
+                      />
+                    ) : (
+                      <div className="w-6 h-6 rounded-sm bg-neutral-200 flex-shrink-0 flex items-center justify-center text-xs text-neutral-500">
+                        🌐
+                      </div>
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-[15px] font-medium">
+                        {tab.title || getDomainName(tab.url)}
+                      </div>
+                      {tab.title && (
+                        <div className="truncate text-xs text-neutral-500">
+                          {getDomainName(tab.url)}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                  <div className="opacity-70 text-sm ml-4 flex-shrink-0">Switch to Tab →</div>
                 </div>
               )
             }

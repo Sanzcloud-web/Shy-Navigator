@@ -1,9 +1,11 @@
 import clsx from 'clsx'
+import { getDomainName } from '../lib/favicon'
 
 export type Tab = {
   id: string
   title?: string
   url: string
+  favicon?: string
 }
 
 type Props = {
@@ -49,10 +51,22 @@ export default function Sidebar({ tabs, activeId, collapsed, onToggleCollapsed, 
               activeId === tab.id ? 'bg-neutral-100 border border-[#ECECEC]' : 'hover:bg-neutral-50'
             )}
           >
-            <div className="w-2 h-2 rounded-full bg-indigo-500" />
+            {tab.favicon && !collapsed ? (
+              <img 
+                src={tab.favicon} 
+                alt="" 
+                className="w-4 h-4 rounded-sm flex-shrink-0"
+                onError={(e) => {
+                  const target = e.target as HTMLImageElement
+                  target.style.display = 'none'
+                }}
+              />
+            ) : (
+              <div className="w-2 h-2 rounded-full bg-indigo-500 flex-shrink-0" />
+            )}
             {!collapsed && (
               <div className="flex-1 truncate text-sm">
-                {tab.title || tab.url.replace(/^https?:\/\//, '')}
+                {tab.title || getDomainName(tab.url)}
               </div>
             )}
             <button
