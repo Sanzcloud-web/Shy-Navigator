@@ -11,7 +11,8 @@
     "dev:electron": "VITE_DEV_SERVER_URL=http://localhost:5173 wait-on tcp:5173 dist-electron/main.js && electron dist-electron/main.js",
     "dev:electron:host": "VITE_DEV_SERVER_URL=http://localhost:5173 wait-on tcp:5173 dist-electron/main.js && electron dist-electron/main.js",
     "build": "rimraf dist dist-electron && tsc -p electron/tsconfig.json && vite build",
-    "start": "electron dist-electron/main.js",
+    "start": "npm run build && electron dist-electron/main.js",
+    "start:nobuild": "electron dist-electron/main.js",
     "compose:dev": "concurrently -k \"npm:dev:renderer\" \"npm:dev:ts\"",
     "lint": "echo 'no lint configured'"
   },

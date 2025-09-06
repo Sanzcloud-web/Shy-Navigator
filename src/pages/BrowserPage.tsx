@@ -6,6 +6,8 @@ import CommandPalette from '../components/CommandPalette'
 import { normalizeUrl } from '../lib/url'
 import { getFaviconUrl } from '../lib/favicon'
 import TopBar from '../components/TopBar'
+import { useTheme } from '../hooks/useTheme'
+import { Moon, Sun } from 'lucide-react'
 
 export default function BrowserPage() {
   const [tabs, setTabs] = useState<Tab[]>([])
@@ -14,6 +16,7 @@ export default function BrowserPage() {
   const [titleMap, setTitleMap] = useState<Record<string, string>>({})
   const [paletteOpen, setPaletteOpen] = useState(false)
   const webviewRef = useRef<WebviewTag | null>(null)
+  const { isDark, toggleTheme } = useTheme()
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeId), [tabs, activeId])
 
@@ -77,7 +80,7 @@ export default function BrowserPage() {
   }, [])
 
   return (
-    <div className="h-full w-full bg-white text-neutral-900">
+    <div className="h-full w-full bg-white dark:bg-[#1F1F1F] text-neutral-900 dark:text-neutral-100">
       <TopBar
         collapsed={collapsed}
         onToggleSidebar={() => setCollapsed(v => !v)}
@@ -98,21 +101,31 @@ export default function BrowserPage() {
         />
         <div className="flex-1 relative p-4">
           {activeTab ? (
-            <div className="w-full h-full rounded-2xl overflow-hidden shadow-lg border border-neutral-200">
+            <div className="w-full h-full rounded-2xl overflow-hidden border border-neutral-200 dark:border-[#2A2A2A]">
               <BrowserView
                 key={activeTab.id}
                 ref={webviewRef as any}
                 src={activeTab.url}
                 className="w-full h-full rounded-2xl"
+                isDark={isDark}
                 onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))}
                 onTitleChange={(t) => setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))}
               />
             </div>
           ) : (
-            <div className="w-full h-full flex items-center justify-center text-neutral-400 bg-neutral-50 rounded-2xl">
+            <div className="w-full h-full flex items-center justify-center text-neutral-400 dark:text-neutral-500 bg-neutral-50 dark:bg-neutral-800 rounded-2xl">
               Cmd+T pour rechercher…
             </div>
           )}
+
+          {/* Bouton de basculement de thème */}
+          <button
+            onClick={toggleTheme}
+            className="fixed bottom-4 left-4 z-50 size-10 flex items-center justify-center rounded-full bg-neutral-100 dark:bg-neutral-800 hover:bg-neutral-200 dark:hover:bg-neutral-700 text-neutral-600 dark:text-neutral-400 shadow-lg transition-colors"
+            title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          >
+            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+          </button>
 
           <CommandPalette
             open={paletteOpen}

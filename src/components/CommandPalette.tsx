@@ -290,8 +290,8 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
       className="fixed inset-0 flex items-center justify-center z-50"
       onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}
     >
-      <div className="w-[640px] max-w-[90vw] bg-white text-neutral-900 border border-[#ECECEC] rounded-[20px] shadow-[0_2px_0_#ECECEC,0_16px_40px_rgba(0,0,0,0.08)]" onMouseDown={(e) => e.stopPropagation()}>
-        <div className="p-4 border-b border-[#ECECEC]">
+      <div className="w-[640px] max-w-[90vw] bg-white dark:bg-[#1F1F1F] text-neutral-900 dark:text-neutral-100 border border-neutral-200 dark:border-[#2A2A2A] rounded-[20px] shadow-[0_16px_40px_rgba(0,0,0,0.08)]" onMouseDown={(e) => e.stopPropagation()}>
+        <div className="p-4">
           {siteSearchMode ? (
             <div className="flex items-center gap-3 mb-3">
               <img 
@@ -303,14 +303,14 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
                   target.style.display = 'none'
                 }}
               />
-              <span className="text-sm text-neutral-600">
+              <span className="text-sm text-neutral-600 dark:text-neutral-400">
                 Recherche sur <span className="font-medium">{siteSearchMode.siteName}</span>
               </span>
             </div>
           ) : null}
           <input
             ref={inputRef}
-            className="w-full bg-neutral-50 border border-[#ECECEC] rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-[18px]"
+            className="w-full bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-[18px]"
             placeholder={siteSearchMode ? `Rechercher sur ${siteSearchMode.siteName}…` : "Rechercher ou entrer une URL…"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -326,7 +326,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
               return (
                 <div
                   key={`youtube-${video.id}`}
-                  className={`p-3 rounded-xl cursor-pointer ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50'}`}
+                  className={`p-3 rounded-xl cursor-pointer ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                   onMouseEnter={() => setIndex(i)}
                   onClick={() => { onSearch(youtubeService.getVideoUrl(video.id)); onClose() }}
                 >
@@ -395,7 +395,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
                 return (
                   <div
                     key={`suggestion-${i}`}
-                    className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50'}`}
+                    className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                     onMouseEnter={() => setIndex(i)}
                     onClick={() => { onSearch(item.text); onClose() }}
                   >
@@ -441,12 +441,12 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
                 return (
                   <div
                     key={`suggestion-${i}`}
-                    className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50'}`}
+                    className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                     onMouseEnter={() => setIndex(i)}
                     onClick={() => { onSearch(item.text); onClose() }}
                   >
                     <div className="flex items-center gap-3">
-                      <Search className="w-4 h-4 text-neutral-500 flex-shrink-0" />
+                      <Search className="w-4 h-4 text-neutral-500 dark:text-neutral-400 flex-shrink-0" />
                       <div className="truncate text-[15px]">{item.text}</div>
                     </div>
                     <div className="opacity-70 text-sm ml-4">Rechercher →</div>
@@ -459,7 +459,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
               return (
                 <div
                   key={tab.id}
-                  className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50'}`}
+                  className={`px-3 py-2 rounded-xl cursor-pointer flex items-center justify-between ${i === index ? 'bg-indigo-600 text-white' : 'hover:bg-neutral-50 dark:hover:bg-neutral-800'}`}
                   onMouseEnter={() => setIndex(i)}
                   onClick={() => { onSelectTab(tab.id); onClose() }}
                 >
@@ -501,12 +501,12 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
             }
           })}
           {allItems.length === 0 && query.trim() && (
-            <div className="text-neutral-500 text-sm px-3 py-4">
+            <div className="text-neutral-500 dark:text-neutral-400 text-sm px-3 py-4">
               {loading ? 'Chargement des suggestions...' : 'Aucun résultat. Appuie sur Entrée pour rechercher avec Google.'}
             </div>
           )}
           {allItems.length === 0 && !query.trim() && (
-            <div className="text-neutral-500 text-sm px-3 py-4">Commence à taper pour voir les suggestions...</div>
+            <div className="text-neutral-500 dark:text-neutral-400 text-sm px-3 py-4">Commence à taper pour voir les suggestions...</div>
           )}
         </div>
       </div>
