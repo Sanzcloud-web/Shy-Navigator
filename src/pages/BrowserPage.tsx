@@ -11,7 +11,7 @@ export default function BrowserPage() {
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [collapsed, setCollapsed] = useState(false)
   const [titleMap, setTitleMap] = useState<Record<string, string>>({})
-  const [paletteOpen, setPaletteOpen] = useState(true)
+  const [paletteOpen, setPaletteOpen] = useState(false)
   const webviewRef = useRef<WebviewTag | null>(null)
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeId), [tabs, activeId])
@@ -60,7 +60,7 @@ export default function BrowserPage() {
         onReload={() => (webviewRef.current as any)?.reload?.()}
         onOpenPalette={() => setPaletteOpen(true)}
       />
-      <div className="h-full pt-10 flex">
+      <div className="h-full pt-12 flex">
         <Sidebar
           tabs={tabs.map(t => ({ ...t, title: titleMap[t.id] || t.title }))}
           activeId={activeId}
@@ -90,8 +90,8 @@ export default function BrowserPage() {
             tabs={tabs}
             onSelectTab={(id) => { setActiveId(id) }}
             onSearch={(q) => {
-              if (!activeId) openTab(q)
-              else navigateCurrent(q)
+              // Toujours ouvrir dans un nouvel onglet lorsqu'on recherche via la palette
+              openTab(q)
             }}
           />
         </div>

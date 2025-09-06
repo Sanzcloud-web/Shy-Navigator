@@ -1,3 +1,5 @@
+import { Menu, ChevronLeft, ChevronRight, RotateCcw, Search, Ellipsis } from 'lucide-react'
+
 type Props = {
   collapsed: boolean
   onToggleSidebar: () => void
@@ -7,58 +9,53 @@ type Props = {
   onOpenPalette: () => void
 }
 
-function Icon({ d, className }: { d: string; className?: string }) {
-  return (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className={className}>
-      <path d={d} strokeLinecap="round" strokeLinejoin="round" />
-    </svg>
-  )
-}
-
 export default function TopBar({ collapsed, onToggleSidebar, onBack, onForward, onReload, onOpenPalette }: Props) {
   return (
-    <div className="fixed top-0 left-0 right-0 h-10 z-40 bg-white/95 border-b border-[#ECECEC] backdrop-blur-sm drag-region">
-      <div className="h-full flex items-center gap-3 px-3">
+    <div className="fixed top-0 left-0 right-0 h-12 z-40 drag-region">
+      {/* Layout en 3 zones (gauche / centre / droite). La zone centrale est absolument centrée. */}
+      <div className="h-full px-4 relative">
         {/* Espace pour les pastilles macOS */}
-        <div className="pl-16" />
-
-        {/* Contrôles navigation & sidebar */}
-        <div className="no-drag flex items-center gap-2 text-neutral-700">
+        <div className="absolute inset-y-0 left-0 flex items-center gap-3 pl-24 no-drag text-neutral-700">
+          {/* Bouton sidebar */}
           <button
-            className="p-1.5 rounded hover:bg-neutral-100 hover:text-black border border-transparent hover:border-[#ECECEC]"
+            className="size-8 inline-flex items-center justify-center rounded-full text-neutral-600 hover:text-neutral-900"
             title={collapsed ? 'Afficher la sidebar' : 'Cacher la sidebar'}
             onClick={onToggleSidebar}
           >
-            <Icon className="w-5 h-5" d="M3.75 5.25h16.5M3.75 12h7.5m-7.5 6.75h16.5" />
+            <Menu className="w-5 h-5" />
           </button>
-          <button className="p-1.5 rounded hover:bg-neutral-100 hover:text-black border border-transparent hover:border-[#ECECEC]" title="Précédent" onClick={onBack}>
-            <Icon className="w-5 h-5" d="M15.75 19.5L8.25 12l7.5-7.5" />
-          </button>
-          <button className="p-1.5 rounded hover:bg-neutral-100 hover:text-black border border-transparent hover:border-[#ECECEC]" title="Suivant" onClick={onForward}>
-            <Icon className="w-5 h-5" d="M8.25 4.5L15.75 12l-7.5 7.5" />
-          </button>
-          <button className="p-1.5 rounded hover:bg-neutral-100 hover:text-black border border-transparent hover:border-[#ECECEC]" title="Recharger" onClick={onReload}>
-            <Icon className="w-5 h-5" d="M4.5 12a7.5 7.5 0 0112.92-5.303M19.5 12a7.5 7.5 0 01-12.92 5.303M9 4.5h3.75V1.5" />
-          </button>
+          {/* Groupe navigation */}
+          <div className="flex items-center rounded-full">
+            <button className="size-8 inline-flex items-center justify-center text-neutral-600 hover:text-neutral-900 rounded-full" title="Précédent" onClick={onBack}>
+              <ChevronLeft className="w-5 h-5" />
+            </button>
+            <button className="size-8 inline-flex items-center justify-center text-neutral-600 hover:text-neutral-900 rounded-full" title="Suivant" onClick={onForward}>
+              <ChevronRight className="w-5 h-5" />
+            </button>
+            <button className="size-8 inline-flex items-center justify-center text-neutral-600 hover:text-neutral-900 rounded-full" title="Recharger" onClick={onReload}>
+              <RotateCcw className="w-5 h-5" />
+            </button>
+          </div>
         </div>
 
-        {/* Barre de recherche (ouvre la palette) */}
-        <div className="no-drag flex-1 flex justify-center">
+        {/* Barre de recherche (ouvre la palette) - centrée */}
+        <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex items-center no-drag w-full max-w-2xl">
           <button
             onClick={onOpenPalette}
-            className="w-full max-w-xl flex items-center gap-3 px-5 py-2.5 rounded-full bg-white text-neutral-700 border border-[#ECECEC] hover:bg-neutral-50 shadow-[0_1px_0_#ECECEC,0_8px_20px_rgba(0,0,0,0.06)]"
+            className="w-full flex items-center gap-3 px-6 py-2.5 rounded-full bg-neutral-50 text-neutral-700 hover:bg-neutral-100"
           >
-            <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8">
-              <circle cx="11" cy="11" r="7" />
-              <path d="M20 20l-3.5-3.5" strokeLinecap="round" />
-            </svg>
-            <span className="text-[15px] opacity-90 font-display">Rechercher ou entrer une URL…</span>
-            <span className="ml-auto text-[11px] px-2 py-0.5 rounded bg-neutral-100 text-neutral-700 border border-[#ECECEC]">⌘T</span>
+            <Search className="w-4 h-4" />
+            <span className="text-[15px] opacity-90">Rechercher ou entrer une URL…</span>
+            <span className="ml-auto text-[11px] px-2 py-0.5 rounded bg-neutral-200 text-neutral-700">⌘T</span>
           </button>
         </div>
 
-        {/* réserve droite (future actions) */}
-        <div className="w-12" />
+        {/* Espace réservé à droite pour actions futures */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 no-drag">
+          <div className="size-8 inline-flex items-center justify-center rounded-full text-neutral-500 hover:text-neutral-700">
+            <Ellipsis className="w-5 h-5" />
+          </div>
+        </div>
       </div>
     </div>
   )
