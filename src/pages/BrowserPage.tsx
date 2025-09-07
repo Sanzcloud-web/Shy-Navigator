@@ -8,6 +8,7 @@ import { getFaviconUrl } from '../lib/favicon'
 import TopBar from '../components/TopBar'
 import { useTheme } from '../hooks/useTheme'
 import { Moon, Sun } from 'lucide-react'
+import type { HistoryEntry } from '../components/ArchiveView'
 
 export default function BrowserPage() {
   const [tabs, setTabs] = useState<Tab[]>([])
@@ -16,6 +17,8 @@ export default function BrowserPage() {
   const [sidebarHovered, setSidebarHovered] = useState(false)
   const [titleMap, setTitleMap] = useState<Record<string, string>>({})
   const [paletteOpen, setPaletteOpen] = useState(false)
+  const [showArchive, setShowArchive] = useState(false)
+  const [history, setHistory] = useState<HistoryEntry[]>([])
   const webviewRef = useRef<WebviewTag | null>(null)
   const { isDark, toggleTheme } = useTheme()
 
@@ -29,6 +32,11 @@ export default function BrowserPage() {
     const t: Tab = { id, url: u, title: 'New Tab', favicon }
     setTabs(prev => [t, ...prev])
     setActiveId(id)
+    
+    // Ajouter à l'historique
+    if (url && url.trim()) {
+      addToHistory(u)
+    }
   }
 
   function closeTab(id: string) {
@@ -44,6 +52,37 @@ export default function BrowserPage() {
     if (!activeId) { openTab(url); return }
     const u = normalizeUrl(url)
     setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
+    
+    // Ajouter à l'historique
+    addToHistory(u)
+  }
+
+  function addToHistory(url: string, title?: string) {
+    const historyEntry: HistoryEntry = {
+      id: crypto.randomUUID(),
+      title: title || new URL(url).hostname,
+      url,
+      favicon: getFaviconUrl(url),
+      visitedAt: new Date()
+    }
+    
+    setHistory(prev => {
+      // Éviter les doublons récents (même URL dans les 5 dernières minutes)
+      const recentDuplicate = prev.find(entry => 
+        entry.url === url && 
+        Date.now() - entry.visitedAt.getTime() < 5 * 60 * 1000
+      )
+      
+      if (recentDuplicate) return prev
+      
+      // Ajouter au début et limiter à 1000 entrées
+      return [historyEntry, ...prev].slice(0, 1000)
+    })
+  }
+
+  function handleHistorySelect(entry: HistoryEntry) {
+    openTab(entry.url)
+    setShowArchive(false)
   }
 
   // Mise à jour des favicons pour les onglets existants
@@ -113,11 +152,15 @@ export default function BrowserPage() {
             collapsed={collapsed}
             sidebarHovered={sidebarHovered}
             isDark={isDark}
+            showArchive={showArchive}
+            history={history}
             onToggleCollapsed={() => setCollapsed(v => !v)}
             onSelect={setActiveId}
             onClose={closeTab}
             onNewTab={() => setPaletteOpen(true)}
             onToggleTheme={toggleTheme}
+            onToggleArchive={() => setShowArchive(v => !v)}
+            onHistorySelect={handleHistorySelect}
           />
         </div>
         <div className="flex-1 relative p-4">
@@ -128,8 +171,17 @@ export default function BrowserPage() {
                 ref={webviewRef as any}
                 src={activeTab.url}
                 className="w-full h-full rounded-2xl"
-                onUrlChange={(u) => setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))}
-                onTitleChange={(t) => setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))}
+                onUrlChange={(u) => {
+                  setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
+                  addToHistory(u)
+                }}
+                onTitleChange={(t) => {
+                  setTitleMap(prev => ({ ...prev, [activeId!]: t || 'Shy Navigator' }))
+                  // Mettre à jour l'historique avec le titre
+                  if (t && activeTab.url) {
+                    addToHistory(activeTab.url, t)
+                  }
+                }}
               />
             </div>
           ) : (
