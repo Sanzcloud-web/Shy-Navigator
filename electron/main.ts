@@ -24,11 +24,26 @@ app.commandLine.appendSwitch('num-raster-threads', '4')
 app.commandLine.appendSwitch('enable-main-frame-before-activation')
 app.commandLine.appendSwitch('enable-surface-synchronization')
 
+// Anti-detection switches to behave more like regular Chrome
+app.commandLine.appendSwitch('disable-blink-features', 'AutomationControlled')
+app.commandLine.appendSwitch('disable-web-security')
+app.commandLine.appendSwitch('disable-features', 'VizDisplayCompositor')
+// More aggressive anti-detection
+app.commandLine.appendSwitch('disable-dev-shm-usage')
+app.commandLine.appendSwitch('disable-background-timer-throttling')
+app.commandLine.appendSwitch('disable-backgrounding-occluded-windows')
+app.commandLine.appendSwitch('disable-renderer-backgrounding')
+app.commandLine.appendSwitch('disable-field-trial-config')
+app.commandLine.appendSwitch('disable-ipc-flooding-protection')
+app.commandLine.appendSwitch('no-first-run')
+app.commandLine.appendSwitch('no-default-browser-check')
+app.commandLine.appendSwitch('disable-default-apps')
+
 // Global browser windows storage
 let browserWindows: TabbedBrowserWindow[] = []
 
 function createWindow() {
-  // Create tabbed browser window with enhanced architecture
+  // Create tabbed browser window
   const tabbedWindow = new TabbedBrowserWindow({
     window: {
       width: 1200,
@@ -44,21 +59,17 @@ function createWindow() {
         spellcheck: true,
         enableWebSQL: false
       },
-      // Style de barre de titre light - GARDE LE DESIGN ORIGINAL
       titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
       titleBarOverlay: process.platform === 'darwin' ? { color: '#ffffff', symbolColor: '#000000', height: 40 } as any : undefined,
       backgroundColor: '#ffffff'
     },
     session: session.defaultSession
   })
-  
-  // Add to global storage
+
+  // Add to global storage and keep BrowserWindow ref for menus/loads
   browserWindows.push(tabbedWindow)
-  
-  // Reference for compatibility with existing code
   const win = tabbedWindow.window
-  
-  // Setup window cleanup
+
   win.on('closed', () => {
     const index = browserWindows.findIndex(bw => bw.window === win)
     if (index !== -1) {
@@ -184,7 +195,7 @@ app.whenReady().then(async () => {
   // Remove Electron branding from user agent for better compatibility
   ses.setUserAgent(CHROME_UA)
   
-  // Performance and security settings
+  // More aggressive session settings to avoid detection
   ses.setPermissionRequestHandler((webContents, permission, callback) => {
     const allowedPermissions = [
       'notifications',
@@ -197,6 +208,18 @@ app.whenReady().then(async () => {
     ]
     callback(allowedPermissions.includes(permission))
   })
+
+  // Remove all Electron traces
+  ses.webRequest.onBeforeRequest((details, callback) => {
+    // Block requests that might expose Electron
+    if (details.url.includes('chrome-extension://') || 
+        details.url.includes('devtools://') ||
+        details.url.includes('electron://')) {
+      callback({ cancel: true })
+      return
+    }
+    callback({})
+  })
   
   // Security headers
   ses.webRequest.onHeadersReceived((details, callback) => {
@@ -208,6 +231,41 @@ app.whenReady().then(async () => {
         'Referrer-Policy': ['strict-origin-when-cross-origin']
       }
     })
+  })
+
+  // Enhanced request headers to avoid bot detection
+  ses.webRequest.onBeforeSendHeaders((details, callback) => {
+    const headers = details.requestHeaders
+    
+    // Set proper Chrome headers to avoid detection
+    headers['User-Agent'] = CHROME_UA
+    headers['Accept-Language'] = 'en-US,en;q=0.9,fr;q=0.8'
+    headers['Accept'] = 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7'
+    headers['Accept-Encoding'] = 'gzip, deflate, br'
+    headers['Connection'] = 'keep-alive'
+    headers['DNT'] = '1'
+    
+    // Dynamic headers based on navigation type
+    if (details.resourceType === 'mainFrame') {
+      headers['Cache-Control'] = 'max-age=0'
+      headers['Upgrade-Insecure-Requests'] = '1'
+      headers['Sec-Fetch-Site'] = details.referrer ? 'same-origin' : 'none'
+      headers['Sec-Fetch-Mode'] = 'navigate'
+      headers['Sec-Fetch-User'] = '?1'
+      headers['Sec-Fetch-Dest'] = 'document'
+    }
+    
+    headers['Sec-Ch-Ua'] = '"Not/A)Brand";v="99", "Google Chrome";v="127", "Chromium";v="127"'
+    headers['Sec-Ch-Ua-Mobile'] = '?0'
+    headers['Sec-Ch-Ua-Platform'] = '"macOS"'
+    headers['Sec-Ch-Ua-Platform-Version'] = '"13.0.0"'
+    headers['Sec-Ch-Ua-Full-Version'] = '"127.0.6533.120"'
+    
+    // Remove any Electron-specific headers
+    delete headers['X-Requested-With']
+    delete headers['Electron']
+    
+    callback({ requestHeaders: headers })
   })
   // Configuration native du menu contextuel pour toutes les webContents
   const setupNativeContextMenu = (webContents: any) => {
@@ -345,7 +403,7 @@ app.whenReady().then(async () => {
     return os.homedir()
   })
 
-  // Enhanced BrowserView integration IPC handlers (garde l'interface React)
+  // Enhanced BrowserView integration IPC handlers
   ipcMain.handle('browser-create-tab', async (event, url?: string) => {
     const win = BrowserWindow.fromWebContents(event.sender)
     if (!win) return null
@@ -418,22 +476,31 @@ app.whenReady().then(async () => {
     }
     return true
   })
-  
-  ipcMain.handle('browser-get-all-tabs', async (event) => {
+
+  // Set BrowserView bounds from renderer-measured container
+  ipcMain.handle('browser-set-tab-bounds', async (event, tabId: number, bounds: { x: number; y: number; width: number; height: number }) => {
     const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return []
-    
+    if (!win) return false
     const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return []
-    
-    return tabbedWindow.getAllTabs().map(tab => ({
-      id: tab.id,
-      url: tab.url,
-      title: tab.title,
-      favicon: tab.favicon,
-      isLoading: tab.isLoading,
-      isActive: tabbedWindow.getActiveTab() === tab
-    }))
+    if (!tabbedWindow) return false
+    const tab = tabbedWindow.getTabById(tabId)
+    if (!tab) return false
+    try {
+      tab.view.setBounds({
+        x: Math.max(0, Math.floor(bounds.x)),
+        y: Math.max(0, Math.floor(bounds.y)),
+        width: Math.max(1, Math.floor(bounds.width)),
+        height: Math.max(1, Math.floor(bounds.height)),
+      })
+      // Ensure it’s on top when active
+      if (tabbedWindow.activeTab === tab) {
+        tabbedWindow.window.setTopBrowserView(tab.view)
+      }
+      return true
+    } catch (e) {
+      console.error('Failed to set tab bounds', e)
+      return false
+    }
   })
 
   console.log('✅ Native context menu configured successfully')

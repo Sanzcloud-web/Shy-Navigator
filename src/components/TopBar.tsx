@@ -1,6 +1,7 @@
 import { Menu, ChevronLeft, ChevronRight, RotateCcw, Search, Ellipsis } from 'lucide-react'
 import { extractDomain } from '../lib/url'
 import { useState, useRef } from 'react'
+import type { MenuPosition } from './ContextMenu'
 
 type Props = {
   collapsed: boolean
@@ -11,9 +12,10 @@ type Props = {
   onReload: () => void
   onOpenPalette: () => void
   onNavigate?: (url: string) => void
+  onOpenMenu?: (position: MenuPosition) => void
 }
 
-export default function TopBar({ collapsed, currentUrl, onToggleSidebar, onBack, onForward, onReload, onOpenPalette, onNavigate }: Props) {
+export default function TopBar({ collapsed, currentUrl, onToggleSidebar, onBack, onForward, onReload, onOpenPalette, onNavigate, onOpenMenu }: Props) {
   const [isEditing, setIsEditing] = useState(false)
   const [inputValue, setInputValue] = useState('')
   const inputRef = useRef<HTMLInputElement>(null)
@@ -107,9 +109,13 @@ export default function TopBar({ collapsed, currentUrl, onToggleSidebar, onBack,
           <button
             onClick={(e) => {
               const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
-              ;(window as any).shy?.openAppMenu?.({ x: rect.left, y: rect.bottom })
+              const position: MenuPosition = { 
+                x: rect.left, 
+                y: rect.bottom + 4 
+              }
+              onOpenMenu?.(position)
             }}
-            className="size-8 inline-flex items-center justify-center rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+            className="size-8 inline-flex items-center justify-center rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200 transition-colors"
             title="Menu"
           >
             <Ellipsis className="w-5 h-5" />

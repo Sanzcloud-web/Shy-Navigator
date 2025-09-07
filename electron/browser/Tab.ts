@@ -221,17 +221,7 @@ export class Tab {
   }
 
   public show() {
-    const windowBounds = this.window.window.getBounds()
-    const toolbarHeight = 48 // Height of the top bar
-    
-    this.view.setBounds({
-      x: 0,
-      y: toolbarHeight,
-      width: windowBounds.width,
-      height: windowBounds.height - toolbarHeight
-    })
-    
-    // Bring to front
+    // Bring to front; bounds are managed from renderer via IPC (browser-set-tab-bounds)
     this.window.window.setTopBrowserView(this.view)
   }
 

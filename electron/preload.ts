@@ -33,14 +33,15 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setupWebviewContextMenu: (webContentsId: number) => {
     ipcRenderer.send('setup-webview-context-menu', webContentsId)
   },
-  // Enhanced BrowserView API (garde la compatibilité React)
+  // Enhanced BrowserView API
   createTab: (url?: string) => ipcRenderer.invoke('browser-create-tab', url),
   closeTab: (tabId: number) => ipcRenderer.invoke('browser-close-tab', tabId),
   setActiveTab: (tabId: number) => ipcRenderer.invoke('browser-set-active-tab', tabId),
   navigateTab: (tabId: number, url: string) => ipcRenderer.invoke('browser-navigate-tab', tabId, url),
   tabAction: (tabId: number, action: 'back' | 'forward' | 'reload' | 'stop') => 
     ipcRenderer.invoke('browser-tab-action', tabId, action),
-  getAllTabs: () => ipcRenderer.invoke('browser-get-all-tabs'),
+  setTabBounds: (tabId: number, bounds: { x: number; y: number; width: number; height: number }) =>
+    ipcRenderer.invoke('browser-set-tab-bounds', tabId, bounds),
   // Events from tabs
   onTabNavigation: (callback: (data: any) => void) => {
     const listener = (_: any, data: any) => callback(data)
