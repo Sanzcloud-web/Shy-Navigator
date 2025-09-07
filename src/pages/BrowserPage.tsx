@@ -9,6 +9,7 @@ import TopBar from '../components/TopBar'
 import { useTheme } from '../hooks/useTheme'
 import { Moon, Sun } from 'lucide-react'
 import type { HistoryEntry } from '../components/ArchiveView'
+import type { DownloadEntry, NavigationCategory } from '../components/NavigationView'
 
 export default function BrowserPage() {
   const [tabs, setTabs] = useState<Tab[]>([])
@@ -17,8 +18,10 @@ export default function BrowserPage() {
   const [sidebarHovered, setSidebarHovered] = useState(false)
   const [titleMap, setTitleMap] = useState<Record<string, string>>({})
   const [paletteOpen, setPaletteOpen] = useState(false)
-  const [showArchive, setShowArchive] = useState(false)
+  const [showNavigation, setShowNavigation] = useState(false)
+  const [navigationCategory, setNavigationCategory] = useState<NavigationCategory>('history')
   const [history, setHistory] = useState<HistoryEntry[]>([])
+  const [downloads, setDownloads] = useState<DownloadEntry[]>([])
   const webviewRef = useRef<WebviewTag | null>(null)
   const { isDark, toggleTheme } = useTheme()
 
@@ -66,6 +69,9 @@ export default function BrowserPage() {
       visitedAt: new Date()
     }
     
+    // Détecter si c'est un téléchargement potentiel
+    detectDownload(url)
+    
     setHistory(prev => {
       // Éviter les doublons récents (même URL dans les 5 dernières minutes)
       const recentDuplicate = prev.find(entry => 
@@ -82,7 +88,93 @@ export default function BrowserPage() {
 
   function handleHistorySelect(entry: HistoryEntry) {
     openTab(entry.url)
-    setShowArchive(false)
+    setShowNavigation(false)
+  }
+
+  function addDownload(filename: string, url: string, size: number = 0) {
+    console.log('📁 Adding download to list:', filename, url, size)
+    const downloadEntry: DownloadEntry = {
+      id: crypto.randomUUID(),
+      filename,
+      url,
+      size,
+      downloadedAt: new Date(),
+      status: 'completed'
+    }
+    
+    setDownloads(prev => {
+      const newDownloads = [downloadEntry, ...prev].slice(0, 500)
+      console.log('📁 Downloads list updated, count:', newDownloads.length)
+      return newDownloads
+    })
+  }
+
+  // Ecouter les téléchargements démarrés côté main (session will-download)
+  useEffect(() => {
+    const off = (window as any).shy?.onDownloadStarted?.((payload: { filename: string; url: string; totalBytes: number }) => {
+      addDownload(payload.filename, payload.url, payload.totalBytes || 0)
+    })
+    return () => {
+      try { off?.() } catch {}
+    }
+  }, [])
+
+  // Fonction de test pour ajouter un téléchargement manuellement
+  function addTestDownload() {
+    const testFiles = [
+      { filename: 'document.pdf', url: 'https://example.com/document.pdf', size: 2400000 },
+      { filename: 'archive.zip', url: 'https://example.com/archive.zip', size: 15600000 },
+      { filename: 'presentation.pptx', url: 'https://example.com/presentation.pptx', size: 8900000 }
+    ]
+    const randomFile = testFiles[Math.floor(Math.random() * testFiles.length)]
+    addDownload(randomFile.filename, randomFile.url, randomFile.size)
+  }
+
+  // Détecte les téléchargements automatiquement basé sur les URLs
+  function detectDownload(url: string) {
+    console.log('🔍 Checking URL for download:', url)
+    const downloadExtensions = ['.pdf', '.zip', '.rar', '.dmg', '.exe', '.jpg', '.png', '.gif', '.mp4', '.mp3', '.doc', '.docx', '.xlsx', '.pptx', '.csv', '.txt']
+    const hasDownloadExtension = downloadExtensions.some(ext => url.toLowerCase().includes(ext))
+    
+    console.log('📥 Has download extension:', hasDownloadExtension)
+    
+    if (hasDownloadExtension) {
+      const filename = url.split('/').pop()?.split('?')[0] || 'download'
+      const estimatedSize = Math.floor(Math.random() * 10000000) + 100000 // Taille estimée
+      console.log('📁 Adding download:', filename, url)
+      addDownload(filename, url, estimatedSize)
+    }
+
+    // Détecter aussi les téléchargements par patterns dans l'URL
+    const downloadPatterns = [
+      '/download/',
+      '/downloads/',
+      '/files/',
+      '/attachments/',
+      'download.php',
+      'get.php',
+      'file.php'
+    ]
+    
+    const hasDownloadPattern = downloadPatterns.some(pattern => url.toLowerCase().includes(pattern))
+    
+    if (hasDownloadPattern && !hasDownloadExtension) {
+      const filename = url.split('/').pop()?.split('?')[0] || `download_${Date.now()}`
+      const estimatedSize = Math.floor(Math.random() * 5000000) + 500000
+      console.log('📁 Adding download by pattern:', filename, url)
+      addDownload(filename, url, estimatedSize)
+    }
+  }
+
+  function handleDownloadSelect(entry: DownloadEntry) {
+    // Ouvrir le dossier Downloads de l'utilisateur (dossier par défaut de Chromium)
+    const { shell } = require('electron')
+    const os = require('os')
+    const path = require('path')
+    
+    const downloadsPath = path.join(os.homedir(), 'Downloads')
+    shell.showItemInFolder(downloadsPath)
+    setShowNavigation(false)
   }
 
   // Mise à jour des favicons pour les onglets existants
@@ -142,7 +234,7 @@ export default function BrowserPage() {
         
         <div
           className={`relative transition-all duration-300 ease-out ${
-            collapsed ? (sidebarHovered ? 'w-64' : 'w-0') : 'w-64'
+            collapsed ? (sidebarHovered ? (showNavigation ? 'w-[600px]' : 'w-64') : 'w-0') : (showNavigation ? 'w-[600px]' : 'w-64')
           }`}
           onMouseLeave={() => setSidebarHovered(false)}
         >
@@ -152,15 +244,20 @@ export default function BrowserPage() {
             collapsed={collapsed}
             sidebarHovered={sidebarHovered}
             isDark={isDark}
-            showArchive={showArchive}
+            showNavigation={showNavigation}
+            navigationCategory={navigationCategory}
             history={history}
+            downloads={downloads}
             onToggleCollapsed={() => setCollapsed(v => !v)}
             onSelect={setActiveId}
             onClose={closeTab}
             onNewTab={() => setPaletteOpen(true)}
             onToggleTheme={toggleTheme}
-            onToggleArchive={() => setShowArchive(v => !v)}
+            onToggleNavigation={() => setShowNavigation(v => !v)}
+            onNavigationCategoryChange={setNavigationCategory}
             onHistorySelect={handleHistorySelect}
+            onDownloadSelect={handleDownloadSelect}
+            onTestDownload={addTestDownload}
           />
         </div>
         <div className="flex-1 relative p-4">
@@ -181,6 +278,10 @@ export default function BrowserPage() {
                   if (t && activeTab.url) {
                     addToHistory(activeTab.url, t)
                   }
+                }}
+                onDownload={(filename, url, size) => {
+                  console.log('📥 Real download detected:', filename, url, size)
+                  addDownload(filename, url, size)
                 }}
               />
             </div>

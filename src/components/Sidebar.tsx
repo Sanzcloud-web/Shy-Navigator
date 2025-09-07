@@ -2,7 +2,8 @@ import clsx from 'clsx'
 import { getDomainName } from '../lib/favicon'
 import { Moon, Sun, Archive } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import ArchiveView, { type HistoryEntry } from './ArchiveView'
+import NavigationView, { type DownloadEntry, type NavigationCategory } from './NavigationView'
+import type { HistoryEntry } from './ArchiveView'
 
 export type Tab = {
   id: string
@@ -17,41 +18,71 @@ type Props = {
   collapsed: boolean
   sidebarHovered?: boolean
   isDark?: boolean
-  showArchive?: boolean
+  showNavigation?: boolean
+  navigationCategory?: NavigationCategory
   history?: HistoryEntry[]
+  downloads?: DownloadEntry[]
   onToggleCollapsed: () => void
   onSelect: (id: string) => void
   onClose: (id: string) => void
   onNewTab: () => void
   onToggleTheme?: () => void
-  onToggleArchive?: () => void
+  onToggleNavigation?: () => void
+  onNavigationCategoryChange?: (category: NavigationCategory) => void
   onHistorySelect?: (entry: HistoryEntry) => void
+  onDownloadSelect?: (entry: DownloadEntry) => void
+  onTestDownload?: () => void
 }
 
-export default function Sidebar({ tabs, activeId, collapsed, sidebarHovered, isDark, showArchive, history = [], onToggleCollapsed, onSelect, onClose, onNewTab, onToggleTheme, onToggleArchive, onHistorySelect }: Props) {
+export default function Sidebar({ 
+  tabs, 
+  activeId, 
+  collapsed, 
+  sidebarHovered, 
+  isDark, 
+  showNavigation, 
+  navigationCategory = 'history',
+  history = [], 
+  downloads = [],
+  onToggleCollapsed, 
+  onSelect, 
+  onClose, 
+  onNewTab, 
+  onToggleTheme, 
+  onToggleNavigation, 
+  onNavigationCategoryChange,
+  onHistorySelect,
+  onDownloadSelect,
+  onTestDownload
+}: Props) {
   const isVisible = !collapsed || sidebarHovered
   return (
     <div
       className={clsx(
         'relative z-10 h-full bg-white dark:bg-[#1F1F1F] text-neutral-900 dark:text-neutral-100 transition-all duration-300 ease-out select-none',
-        collapsed && !sidebarHovered ? 'w-0 overflow-hidden' : 'w-64',
+        collapsed && !sidebarHovered ? 'w-0 overflow-hidden' : (showNavigation ? 'w-[600px]' : 'w-64'),
         collapsed && sidebarHovered && 'shadow-2xl border-r border-neutral-200 dark:border-neutral-800'
       )}
     >
       <AnimatePresence mode="wait">
-        {showArchive ? (
+        {showNavigation ? (
           <motion.div
-            key="archive"
+            key="navigation"
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
             exit={{ opacity: 0, x: -20 }}
             transition={{ duration: 0.18, ease: "easeOut" }}
             className="h-full"
           >
-            <ArchiveView
+            <NavigationView
+              activeCategory={navigationCategory}
               history={history}
-              onBack={onToggleArchive || (() => {})}
+              downloads={downloads}
+              onBack={onToggleNavigation || (() => {})}
+              onCategoryChange={onNavigationCategoryChange || (() => {})}
               onSelectEntry={onHistorySelect || (() => {})}
+              onSelectDownload={onDownloadSelect || (() => {})}
+              onTestDownload={onTestDownload}
               isVisible={isVisible}
             />
           </motion.div>
@@ -125,38 +156,28 @@ export default function Sidebar({ tabs, activeId, collapsed, sidebarHovered, isD
       </AnimatePresence>
 
       {/* Boutons en bas de la sidebar */}
-      <div className="absolute bottom-4 left-2 right-2 space-y-2">
-        {/* Boutons thème et archive */}
-        <div className="flex gap-2">
+      <div className="absolute bottom-4 left-2 right-2 space-y-2 bg-white dark:bg-[#1F1F1F] rounded-lg p-2">
+        {/* Boutons navigation à gauche et thème à droite */}
+        <div className="flex justify-between gap-2">
+          {onToggleNavigation && (
+            <button
+              onClick={onToggleNavigation}
+              className={clsx(
+                'size-8 flex items-center justify-center rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors',
+                showNavigation && 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
+              )}
+              title="Navigation & Historique"
+            >
+              <Archive className="w-4 h-4" />
+            </button>
+          )}
           {onToggleTheme && (
             <button
               onClick={onToggleTheme}
-              className={clsx(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors',
-              )}
+              className="size-8 flex items-center justify-center rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors"
               title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
             >
               {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
-              {isVisible && (
-                <span className="text-sm">
-                  {isDark ? 'Clair' : 'Sombre'}
-                </span>
-              )}
-            </button>
-          )}
-          {onToggleArchive && (
-            <button
-              onClick={onToggleArchive}
-              className={clsx(
-                'flex-1 flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors',
-                showArchive && 'bg-neutral-100 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100'
-              )}
-              title="Historique des onglets"
-            >
-              <Archive className="w-4 h-4" />
-              {isVisible && (
-                <span className="text-sm">Historique</span>
-              )}
             </button>
           )}
         </div>

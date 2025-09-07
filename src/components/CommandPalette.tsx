@@ -21,6 +21,15 @@ type YouTubeVideoItem = YouTubeVideo & {
   type: 'youtube-video'
 }
 
+// Type guards to narrow union types safely
+function isSuggestion(item: any): item is GoogleSuggestion {
+  return !!item && (item as any).type === 'suggestion'
+}
+
+function isYouTubeVideoItem(item: any): item is YouTubeVideoItem {
+  return !!item && (item as any).type === 'youtube-video'
+}
+
 export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSearch }: Props) {
   const [query, setQuery] = useState('')
   const [index, setIndex] = useState(0)
@@ -217,7 +226,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
     const onKey = (e: KeyboardEvent) => {
       if (!open) return
       
-      const currentItems = [...filtered]
+      const currentItems: Array<Tab | GoogleSuggestion | YouTubeVideoItem> = [...filtered]
       if (siteSearchMode && siteSearchMode.url.includes('youtube.com') && youtubeVideos.length > 0) {
         currentItems.push(...youtubeVideos)
       } else if (query.trim() && suggestions.length > 0) {
@@ -238,7 +247,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
       if (e.key === 'Tab') {
         e.preventDefault()
         const selectedItem = currentItems[index]
-        if (selectedItem && 'type' in selectedItem && selectedItem.type === 'suggestion') {
+        if (isSuggestion(selectedItem)) {
           const isUrl = selectedItem.text.startsWith('http://') || selectedItem.text.startsWith('https://')
           if (isUrl && supportsSiteSearch(selectedItem.text)) {
             setSiteSearchMode({
@@ -253,27 +262,37 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
       }
       if (e.key === 'Enter') {
         e.preventDefault()
-        
+
+        // Respecter l'élément sélectionné en priorité (ex: vidéo YouTube)
+        const selectedItem = currentItems[index]
+        if (selectedItem) {
+          if (isYouTubeVideoItem(selectedItem)) {
+            // Ouvrir directement la vidéo sélectionnée
+            onSearch(youtubeService.getVideoUrl(selectedItem.id))
+            onClose()
+            return
+          } else if (isSuggestion(selectedItem)) {
+            onSearch(selectedItem.text)
+            onClose()
+            return
+          } else if ('id' in selectedItem) {
+            onSelectTab(selectedItem.id)
+            onClose()
+            return
+          }
+        }
+
+        // Si aucun élément spécifique sélectionné, gérer les modes de recherche
         if (siteSearchMode && query.trim()) {
-          // Recherche sur le site
+          // Recherche sur le site (YouTube, Google, etc.)
           const searchUrl = getSiteSearchUrl(siteSearchMode.url, query)
           onSearch(searchUrl)
           onClose()
           return
         }
-        
-        const selectedItem = currentItems[index]
-        if (selectedItem) {
-          if ('type' in selectedItem) {
-            if (selectedItem.type === 'suggestion') {
-              onSearch(selectedItem.text)
-            } else if (selectedItem.type === 'youtube-video') {
-              onSearch(youtubeService.getVideoUrl(selectedItem.id))
-            }
-          } else if ('id' in selectedItem) {
-            onSelectTab(selectedItem.id)
-          }
-        } else if (query.trim()) {
+
+        // Sinon, recherche générique
+        if (query.trim()) {
           onSearch(query)
         }
         onClose()
@@ -310,7 +329,7 @@ export default function CommandPalette({ open, onClose, tabs, onSelectTab, onSea
           ) : null}
           <input
             ref={inputRef}
-            className="w-full bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-full px-5 py-3 outline-none focus:ring-2 focus:ring-indigo-500 text-[18px]"
+            className="w-full bg-neutral-50 dark:bg-neutral-800 text-neutral-900 dark:text-neutral-100 rounded-full px-5 py-3 outline-none text-[18px]"
             placeholder={siteSearchMode ? `Rechercher sur ${siteSearchMode.siteName}…` : "Rechercher ou entrer une URL…"}
             value={query}
             onChange={(e) => setQuery(e.target.value)}

@@ -49,7 +49,7 @@ export default function TopBar({ collapsed, currentUrl, onToggleSidebar, onBack,
         {/* Barre d'adresse éditable - centrée */}
         <div className="absolute inset-y-0 left-1/2 -translate-x-1/2 flex items-center no-drag">
           {isEditing ? (
-            <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-neutral-50 dark:bg-neutral-800 border-2 border-blue-500 min-w-80">
+            <div className="flex items-center gap-3 px-6 py-2 rounded-full bg-neutral-50 dark:bg-neutral-800 min-w-80">
               <Search className="w-4 h-4 text-neutral-500" />
               <input
                 ref={inputRef}

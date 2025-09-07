@@ -1,9 +1,14 @@
-import { app, BrowserWindow } from 'electron'
+import { app, BrowserWindow, session } from 'electron'
 import * as path from 'node:path'
 import * as url from 'node:url'
 import 'dotenv/config'
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL
+
+// Masquer l'UA Electron pour réduire les pages "Sorry" et les captchas
+const CHROME_UA =
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_5_0) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36'
+app.userAgentFallback = CHROME_UA
 
 function createWindow() {
   const win = new BrowserWindow({
@@ -37,7 +42,23 @@ app.on('activate', () => {
   if (BrowserWindow.getAllWindows().length === 0) createWindow()
 })
 
-app.whenReady().then(createWindow)
+app.whenReady().then(() => {
+  // Ecouter les téléchargements pour toutes les webContents, y compris <webview>
+  session.defaultSession.on('will-download', (_event, item, webContents) => {
+    try {
+      const payload = {
+        filename: item.getFilename(),
+        url: item.getURL(),
+        totalBytes: item.getTotalBytes(),
+      }
+      webContents.send('shy:download-started', payload)
+    } catch (e) {
+      // pas bloquant
+    }
+  })
+
+  createWindow()
+})
 
 // Quit when all windows are closed, except on macOS
 app.on('window-all-closed', () => {
