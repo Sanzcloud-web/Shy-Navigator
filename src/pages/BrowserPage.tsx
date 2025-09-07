@@ -112,10 +112,12 @@ export default function BrowserPage() {
             activeId={activeId}
             collapsed={collapsed}
             sidebarHovered={sidebarHovered}
+            isDark={isDark}
             onToggleCollapsed={() => setCollapsed(v => !v)}
             onSelect={setActiveId}
             onClose={closeTab}
             onNewTab={() => setPaletteOpen(true)}
+            onToggleTheme={toggleTheme}
           />
         </div>
         <div className="flex-1 relative p-4">
@@ -136,14 +138,6 @@ export default function BrowserPage() {
             </div>
           )}
 
-          {/* Bouton de basculement de thème */}
-          <button
-            onClick={toggleTheme}
-            className="fixed bottom-4 left-4 z-50 size-10 flex items-center justify-center rounded-full text-neutral-600 dark:text-neutral-400 transition-colors"
-            title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
-          >
-            {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
-          </button>
 
           <CommandPalette
             open={paletteOpen}

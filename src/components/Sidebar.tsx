@@ -1,5 +1,6 @@
 import clsx from 'clsx'
 import { getDomainName } from '../lib/favicon'
+import { Moon, Sun } from 'lucide-react'
 
 export type Tab = {
   id: string
@@ -13,13 +14,15 @@ type Props = {
   activeId?: string
   collapsed: boolean
   sidebarHovered?: boolean
+  isDark?: boolean
   onToggleCollapsed: () => void
   onSelect: (id: string) => void
   onClose: (id: string) => void
   onNewTab: () => void
+  onToggleTheme?: () => void
 }
 
-export default function Sidebar({ tabs, activeId, collapsed, sidebarHovered, onToggleCollapsed, onSelect, onClose, onNewTab }: Props) {
+export default function Sidebar({ tabs, activeId, collapsed, sidebarHovered, isDark, onToggleCollapsed, onSelect, onClose, onNewTab, onToggleTheme }: Props) {
   const isVisible = !collapsed || sidebarHovered
   return (
     <div
@@ -44,7 +47,7 @@ export default function Sidebar({ tabs, activeId, collapsed, sidebarHovered, onT
         )}
       </div>
 
-      <div className="overflow-y-auto py-2 space-y-1">
+      <div className="overflow-y-auto py-2 space-y-1 pb-16">
         {tabs.map(tab => (
           <div
             key={tab.id}
@@ -83,6 +86,27 @@ export default function Sidebar({ tabs, activeId, collapsed, sidebarHovered, onT
           <div className="mx-2 mt-4 text-neutral-500 dark:text-neutral-400 text-sm">Aucun onglet. Cmd+T pour rechercher…</div>
         )}
       </div>
+
+      {/* Bouton de thème en bas de la sidebar */}
+      {onToggleTheme && (
+        <div className="absolute bottom-4 left-2 right-2">
+          <button
+            onClick={onToggleTheme}
+            className={clsx(
+              'w-full flex items-center gap-3 px-3 py-2 rounded-lg text-neutral-600 dark:text-neutral-400 hover:text-neutral-900 dark:hover:text-neutral-100 hover:bg-neutral-100 dark:hover:bg-neutral-800 transition-colors',
+              !isVisible && 'justify-center'
+            )}
+            title={isDark ? 'Passer en mode clair' : 'Passer en mode sombre'}
+          >
+            {isDark ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+            {isVisible && (
+              <span className="text-sm">
+                {isDark ? 'Mode clair' : 'Mode sombre'}
+              </span>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Drag handled by the TopBar; no overlay here to avoid stacking issues */}
     </div>
