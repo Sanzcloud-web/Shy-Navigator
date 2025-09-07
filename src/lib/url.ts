@@ -8,3 +8,12 @@ export function normalizeUrl(input: string) {
   return `https://www.google.com/search?q=${encodeURIComponent(trimmed)}`
 }
 
+export function extractDomain(url: string): string {
+  try {
+    const urlObj = new URL(url)
+    return urlObj.hostname
+  } catch {
+    return url
+  }
+}
+

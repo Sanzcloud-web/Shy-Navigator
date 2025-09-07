@@ -83,11 +83,13 @@ export default function BrowserPage() {
     <div className="h-full w-full bg-white dark:bg-[#1F1F1F] text-neutral-900 dark:text-neutral-100">
       <TopBar
         collapsed={collapsed}
+        currentUrl={activeTab?.url}
         onToggleSidebar={() => setCollapsed(v => !v)}
         onBack={() => (webviewRef.current as any)?.goBack?.()}
         onForward={() => (webviewRef.current as any)?.goForward?.()}
         onReload={() => (webviewRef.current as any)?.reload?.()}
         onOpenPalette={() => setPaletteOpen(true)}
+        onNavigate={(url) => navigateCurrent(url)}
       />
       <div className="h-full pt-12 flex">
         <Sidebar
