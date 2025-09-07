@@ -1,5 +1,4 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
-import type { WebviewTag } from 'electron'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 
 type Props = {
   src: string
@@ -9,74 +8,166 @@ type Props = {
   onDownload?: (filename: string, url: string, size: number) => void
 }
 
-export type BrowserViewHandle = WebviewTag | null
+// Enhanced BrowserView handle with BrowserView API
+export type BrowserViewHandle = {
+  loadURL: (url: string) => void
+  goBack: () => void
+  goForward: () => void
+  reload: () => void
+  stop: () => void
+  getURL: () => string
+  getTitle: () => string
+} | null
 
 const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
   { src, className, onUrlChange, onTitleChange, onDownload },
   ref
 ) {
-  const wvRef = useRef<WebviewTag | null>(null)
+  const [tabId, setTabId] = useState<number | null>(null)
+  const [currentUrl, setCurrentUrl] = useState(src)
+  const [currentTitle, setCurrentTitle] = useState('')
 
-  useImperativeHandle(ref, () => wvRef.current)
+  // Create enhanced handle that works with BrowserView backend
+  useImperativeHandle(ref, () => ({
+    loadURL: (url: string) => {
+      if (tabId !== null) {
+        ;(window as any).electronAPI?.navigateTab(tabId, url)
+      }
+    },
+    goBack: () => {
+      if (tabId !== null) {
+        ;(window as any).electronAPI?.tabAction(tabId, 'back')
+      }
+    },
+    goForward: () => {
+      if (tabId !== null) {
+        ;(window as any).electronAPI?.tabAction(tabId, 'forward')
+      }
+    },
+    reload: () => {
+      if (tabId !== null) {
+        ;(window as any).electronAPI?.tabAction(tabId, 'reload')
+      }
+    },
+    stop: () => {
+      if (tabId !== null) {
+        ;(window as any).electronAPI?.tabAction(tabId, 'stop')
+      }
+    },
+    getURL: () => currentUrl,
+    getTitle: () => currentTitle
+  }))
 
+  // Create and manage BrowserView tab
   useEffect(() => {
-    const wv = wvRef.current
-    if (!wv) return
-    try {
-      // @ts-ignore - Electron runtime method
-      wv.loadURL?.(src)
-    } catch {
-      wv.src = src
-    }
-  }, [src])
-
-  useEffect(() => {
-    const wv = wvRef.current
-    if (!wv) return
+    let mounted = true
     
-    const onNav = () => {
-      // @ts-ignore - Electron runtime method
-      const current = (wv as any).getURL?.() || wv.getAttribute('src') || src
-      onUrlChange?.(current)
-    }
-    
-    const onTitle = (e: any) => onTitleChange?.(e.title || '')
-    
-    // Gestionnaire de téléchargements simple - seulement les vrais téléchargements
-    const onWillDownload = (e: any) => {
-      console.log('📥 Download started:', e)
-      if (onDownload && e.item) {
-        const filename = e.item.getFilename() || 'download'
-        const url = e.item.getURL() || ''
-        const size = e.item.getTotalBytes() || 0
-        onDownload(filename, url, size)
+    const initializeTab = async () => {
+      try {
+        const electronAPI = (window as any).electronAPI
+        if (!electronAPI) {
+          console.warn('electronAPI not available, falling back to webview')
+          return
+        }
+        
+        // Create new tab with BrowserView backend
+        const tab = await electronAPI.createTab(src)
+        if (!mounted) return
+        
+        if (tab) {
+          setTabId(tab.id)
+          setCurrentUrl(tab.url)
+          setCurrentTitle(tab.title)
+          
+          // Set as active tab
+          await electronAPI.setActiveTab(tab.id)
+        }
+      } catch (error) {
+        console.error('Failed to create BrowserView tab:', error)
       }
     }
     
-    // Utiliser seulement les événements essentiels pour un comportement plus naturel
-    wv.addEventListener('did-navigate', onNav as any)
-    wv.addEventListener('page-title-updated', onTitle as any)
-    wv.addEventListener('will-download', onWillDownload as any)
+    initializeTab()
     
     return () => {
-      wv.removeEventListener('did-navigate', onNav as any)
-      wv.removeEventListener('page-title-updated', onTitle as any)
-      wv.removeEventListener('will-download', onWillDownload as any)
+      mounted = false
+      // Cleanup: close tab when component unmounts
+      if (tabId !== null) {
+        ;(window as any).electronAPI?.closeTab(tabId)
+      }
     }
-  }, [src, onUrlChange, onTitleChange, onDownload])
+  }, [])
+  
+  // Handle URL changes
+  useEffect(() => {
+    if (tabId !== null && src !== currentUrl) {
+      ;(window as any).electronAPI?.navigateTab(tabId, src)
+    }
+  }, [src, tabId, currentUrl])
+
+  // Listen to BrowserView tab events
+  useEffect(() => {
+    if (tabId === null) return
+    
+    const electronAPI = (window as any).electronAPI
+    if (!electronAPI) return
+    
+    // Setup event listeners for this specific tab
+    const cleanupFns: (() => void)[] = []
+    
+    // Navigation events
+    const offNavigation = electronAPI.onTabNavigation?.((data: any) => {
+      if (data.tabId === tabId) {
+        setCurrentUrl(data.url)
+        onUrlChange?.(data.url)
+      }
+    })
+    if (offNavigation) cleanupFns.push(offNavigation)
+    
+    // Title updates
+    const offTitle = electronAPI.onTabTitleUpdated?.((data: any) => {
+      if (data.tabId === tabId) {
+        setCurrentTitle(data.title)
+        onTitleChange?.(data.title)
+      }
+    })
+    if (offTitle) cleanupFns.push(offTitle)
+    
+    // Download events
+    const offDownload = electronAPI.onTabDownloadStarted?.((data: any) => {
+      if (data.tabId === tabId) {
+        onDownload?.(data.filename, data.url, data.totalBytes)
+      }
+    })
+    if (offDownload) cleanupFns.push(offDownload)
+    
+    return () => {
+      cleanupFns.forEach(cleanup => cleanup())
+    }
+  }, [tabId, onUrlChange, onTitleChange, onDownload])
 
 
+  // Render placeholder div - actual content is handled by BrowserView backend
   return (
-    // @ts-ignore - custom element in React
-    <webview 
-      ref={wvRef as any} 
-      src={src} 
-      className={className || ''} 
-      allowpopups={false}
-      nodeintegration={false}
-      webpreferences="sandbox=true,contextIsolation=true,nodeIntegration=false,nodeIntegrationInWorker=false,nodeIntegrationInSubFrames=false,enableRemoteModule=false"
-    />
+    <div 
+      className={`${className || ''} bg-white dark:bg-neutral-900 flex items-center justify-center`}
+      style={{ width: '100%', height: '100%' }}
+    >
+      {tabId === null ? (
+        <div className="text-neutral-500 dark:text-neutral-400">
+          Loading...
+        </div>
+      ) : (
+        // Invisible div that represents the BrowserView area
+        <div className="w-full h-full" style={{ background: 'transparent' }} />
+      )}
+    </div>
   )
 })
+
+// Fallback to webview if BrowserView not available
+if (typeof window !== 'undefined' && !(window as any).electronAPI?.createTab) {
+  console.warn('BrowserView API not available, using webview fallback')
+}
 
 export default BrowserView

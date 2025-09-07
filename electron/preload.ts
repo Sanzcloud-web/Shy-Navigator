@@ -24,11 +24,78 @@ contextBridge.exposeInMainWorld('shy', {
   }
 })
 
-// Expose API pour les shortcuts globaux
+// Expose API pour les shortcuts globaux et webview setup
 contextBridge.exposeInMainWorld('electronAPI', {
   onGlobalShortcut: (callback: (event: any, shortcut: string) => void) => {
     ipcRenderer.on('global-shortcut', callback)
     return () => ipcRenderer.removeAllListeners('global-shortcut')
+  },
+  setupWebviewContextMenu: (webContentsId: number) => {
+    ipcRenderer.send('setup-webview-context-menu', webContentsId)
+  },
+  // Enhanced BrowserView API (garde la compatibilité React)
+  createTab: (url?: string) => ipcRenderer.invoke('browser-create-tab', url),
+  closeTab: (tabId: number) => ipcRenderer.invoke('browser-close-tab', tabId),
+  setActiveTab: (tabId: number) => ipcRenderer.invoke('browser-set-active-tab', tabId),
+  navigateTab: (tabId: number, url: string) => ipcRenderer.invoke('browser-navigate-tab', tabId, url),
+  tabAction: (tabId: number, action: 'back' | 'forward' | 'reload' | 'stop') => 
+    ipcRenderer.invoke('browser-tab-action', tabId, action),
+  getAllTabs: () => ipcRenderer.invoke('browser-get-all-tabs'),
+  // Events from tabs
+  onTabNavigation: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tab-navigation', listener)
+    return () => ipcRenderer.removeListener('tab-navigation', listener)
+  },
+  onTabTitleUpdated: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tab-title-updated', listener)
+    return () => ipcRenderer.removeListener('tab-title-updated', listener)
+  },
+  onTabFaviconUpdated: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tab-favicon-updated', listener)
+    return () => ipcRenderer.removeListener('tab-favicon-updated', listener)
+  },
+  onTabLoadingState: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tab-loading-state', listener)
+    return () => ipcRenderer.removeListener('tab-loading-state', listener)
+  },
+  onTabDownloadStarted: (callback: (data: any) => void) => {
+    const listener = (_: any, data: any) => callback(data)
+    ipcRenderer.on('tab-download-started', listener)
+    return () => ipcRenderer.removeListener('tab-download-started', listener)
+  }
+})
+
+// Enhanced secure API for webview access (sandbox compatible)
+contextBridge.exposeInMainWorld('electronSecure', {
+  // Safe shell operations
+  shell: {
+    openExternal: (url: string) => {
+      // Validate URL before opening
+      try {
+        const urlObj = new URL(url)
+        if (urlObj.protocol === 'http:' || urlObj.protocol === 'https:') {
+          return ipcRenderer.invoke('shell-open-external', url)
+        }
+      } catch (e) {
+        console.error('Invalid URL for external open:', url)
+      }
+    },
+    showItemInFolder: (path: string) => {
+      return ipcRenderer.invoke('shell-show-item', path)
+    }
+  },
+  // Safe path operations
+  path: {
+    join: (...paths: string[]) => {
+      return ipcRenderer.invoke('path-join', paths)
+    },
+    homedir: () => {
+      return ipcRenderer.invoke('os-homedir')
+    }
   }
 })
 

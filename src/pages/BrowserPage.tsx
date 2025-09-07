@@ -128,14 +128,20 @@ export default function BrowserPage() {
   }
 
 
-  function handleDownloadSelect(entry: DownloadEntry) {
-    // Ouvrir le dossier Downloads de l'utilisateur (dossier par défaut de Chromium)
-    const { shell } = require('electron')
-    const os = require('os')
-    const path = require('path')
-    
-    const downloadsPath = path.join(os.homedir(), 'Downloads')
-    shell.showItemInFolder(downloadsPath)
+  async function handleDownloadSelect(entry: DownloadEntry) {
+    // Ouvrir le dossier Downloads de l'utilisateur (dossier par défaut de Chromium) - Version sécurisée
+    try {
+      const electronSecure = (window as any).electronSecure
+      if (electronSecure?.path && electronSecure?.shell) {
+        const homedir = await electronSecure.path.homedir()
+        const downloadsPath = await electronSecure.path.join(homedir, 'Downloads')
+        await electronSecure.shell.showItemInFolder(downloadsPath)
+      } else {
+        console.warn('electronSecure API not available')
+      }
+    } catch (error) {
+      console.error('Failed to open downloads folder:', error)
+    }
     setShowNavigation(false)
   }
 

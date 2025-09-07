@@ -1,11 +1,11 @@
+// Cache pour éviter les requêtes répétées
+const faviconCache = new Map<string, string>()
+
 /**
- * Récupère l'URL du favicon d'un site web
+ * Récupère l'URL du favicon d'un site web avec mise en cache
  */
 export function getFaviconUrl(url: string): string {
-  console.log('🔍 getFaviconUrl called with:', url)
-  
   if (!url || url.trim() === '' || url === 'about:blank') {
-    console.log('❌ Empty or blank URL, returning empty string')
     return ''
   }
   
@@ -15,20 +15,23 @@ export function getFaviconUrl(url: string): string {
     const urlObj = new URL(normalizedUrl)
     const domain = urlObj.hostname
     
-    console.log('🌐 Extracted domain:', domain)
-    
     if (!domain || domain === 'localhost') {
-      console.log('❌ Invalid or localhost domain, returning empty string')
       return ''
     }
     
-    // Utilise l'API Google pour récupérer les favicons
+    // Vérifier le cache d'abord
+    if (faviconCache.has(domain)) {
+      return faviconCache.get(domain)!
+    }
+    
+    // Générer l'URL du favicon
     const faviconUrl = `https://www.google.com/s2/favicons?domain=${domain}&sz=32`
-    console.log('✅ Generated favicon URL:', faviconUrl)
+    
+    // Mettre en cache
+    faviconCache.set(domain, faviconUrl)
+    
     return faviconUrl
   } catch (error) {
-    // Fallback pour les URLs malformées
-    console.log('❌ Error parsing URL:', error)
     return ''
   }
 }
