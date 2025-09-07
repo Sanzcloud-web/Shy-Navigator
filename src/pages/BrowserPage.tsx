@@ -13,6 +13,7 @@ export default function BrowserPage() {
   const [tabs, setTabs] = useState<Tab[]>([])
   const [activeId, setActiveId] = useState<string | undefined>(undefined)
   const [collapsed, setCollapsed] = useState(false)
+  const [sidebarHovered, setSidebarHovered] = useState(false)
   const [titleMap, setTitleMap] = useState<Record<string, string>>({})
   const [paletteOpen, setPaletteOpen] = useState(false)
   const webviewRef = useRef<WebviewTag | null>(null)
@@ -91,16 +92,32 @@ export default function BrowserPage() {
         onOpenPalette={() => setPaletteOpen(true)}
         onNavigate={(url) => navigateCurrent(url)}
       />
-      <div className="h-full pt-12 flex">
-        <Sidebar
-          tabs={tabs.map(t => ({ ...t, title: titleMap[t.id] || t.title }))}
-          activeId={activeId}
-          collapsed={collapsed}
-          onToggleCollapsed={() => setCollapsed(v => !v)}
-          onSelect={setActiveId}
-          onClose={closeTab}
-          onNewTab={() => setPaletteOpen(true)}
-        />
+      <div className="h-full pt-12 flex relative">
+        {/* Zone de survol invisible pour réveiller la sidebar */}
+        {collapsed && (
+          <div
+            className="absolute top-0 left-0 w-4 h-full z-50"
+            onMouseEnter={() => setSidebarHovered(true)}
+          />
+        )}
+        
+        <div
+          className={`relative transition-all duration-300 ease-out ${
+            collapsed ? (sidebarHovered ? 'w-64' : 'w-0') : 'w-64'
+          }`}
+          onMouseLeave={() => setSidebarHovered(false)}
+        >
+          <Sidebar
+            tabs={tabs.map(t => ({ ...t, title: titleMap[t.id] || t.title }))}
+            activeId={activeId}
+            collapsed={collapsed}
+            sidebarHovered={sidebarHovered}
+            onToggleCollapsed={() => setCollapsed(v => !v)}
+            onSelect={setActiveId}
+            onClose={closeTab}
+            onNewTab={() => setPaletteOpen(true)}
+          />
+        </div>
         <div className="flex-1 relative p-4">
           {activeTab ? (
             <div className="w-full h-full rounded-2xl overflow-hidden border border-neutral-200 dark:border-[#2A2A2A]">
