@@ -22,27 +22,73 @@ export default function BrowserPage() {
   const [navigationCategory, setNavigationCategory] = useState<NavigationCategory>('history')
   const [history, setHistory] = useState<HistoryEntry[]>([])
   const [downloads, setDownloads] = useState<DownloadEntry[]>([])
-  const webviewRef = useRef<WebviewTag | null>(null)
+  const [tabIdMap, setTabIdMap] = useState<Record<string, number>>({})
+  const webviewRef = useRef<any>(null)
   const { isDark, toggleTheme } = useTheme()
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeId), [tabs, activeId])
 
-  function openTab(url?: string) {
+  async function openTab(url?: string) {
     const u = normalizeUrl(url || '')
     const id = crypto.randomUUID()
     const favicon = getFaviconUrl(u)
     console.log('📂 openTab - URL:', u, 'Favicon:', favicon)
+    
+    try {
+      // Create BrowserView tab via Electron API
+      const electronAPI = (window as any).electronAPI
+      if (electronAPI?.createTab) {
+        const browserViewTab = await electronAPI.createTab(u)
+        if (browserViewTab) {
+          // Map our React tab ID to BrowserView tab ID
+          setTabIdMap(prev => ({ ...prev, [id]: browserViewTab.id }))
+          
+          // Create React tab state
+          const t: Tab = { id, url: u, title: 'New Tab', favicon }
+          setTabs(prev => [t, ...prev])
+          setActiveId(id)
+          
+          // Set as active in BrowserView
+          await electronAPI.setActiveTab(browserViewTab.id)
+          
+          // Ajouter à l'historique
+          if (url && url.trim()) {
+            addToHistory(u)
+          }
+          return
+        }
+      }
+    } catch (error) {
+      console.error('Failed to create BrowserView tab:', error)
+    }
+    
+    // Fallback: create React tab without BrowserView (shouldn't happen in normal flow)
     const t: Tab = { id, url: u, title: 'New Tab', favicon }
     setTabs(prev => [t, ...prev])
     setActiveId(id)
-    
-    // Ajouter à l'historique
-    if (url && url.trim()) {
-      addToHistory(u)
-    }
   }
 
-  function closeTab(id: string) {
+  async function closeTab(id: string) {
+    try {
+      // Close BrowserView tab
+      const browserViewTabId = tabIdMap[id]
+      if (browserViewTabId !== undefined) {
+        const electronAPI = (window as any).electronAPI
+        if (electronAPI?.closeTab) {
+          await electronAPI.closeTab(browserViewTabId)
+        }
+        // Remove from mapping
+        setTabIdMap(prev => {
+          const newMap = { ...prev }
+          delete newMap[id]
+          return newMap
+        })
+      }
+    } catch (error) {
+      console.error('Failed to close BrowserView tab:', error)
+    }
+    
+    // Update React state
     setTabs(prev => prev.filter(t => t.id !== id))
     if (activeId === id) {
       const rest = tabs.filter(t => t.id !== id)
@@ -51,9 +97,24 @@ export default function BrowserPage() {
     }
   }
 
-  function navigateCurrent(url: string) {
+  async function navigateCurrent(url: string) {
     if (!activeId) { openTab(url); return }
     const u = normalizeUrl(url)
+    
+    try {
+      // Navigate BrowserView tab
+      const browserViewTabId = tabIdMap[activeId]
+      if (browserViewTabId !== undefined) {
+        const electronAPI = (window as any).electronAPI
+        if (electronAPI?.navigateTab) {
+          await electronAPI.navigateTab(browserViewTabId, u)
+        }
+      }
+    } catch (error) {
+      console.error('Failed to navigate BrowserView tab:', error)
+    }
+    
+    // Update React state
     setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
     
     // Ajouter à l'historique
@@ -198,9 +259,9 @@ export default function BrowserPage() {
         collapsed={collapsed}
         currentUrl={activeTab?.url}
         onToggleSidebar={() => setCollapsed(v => !v)}
-        onBack={() => (webviewRef.current as any)?.goBack?.()}
-        onForward={() => (webviewRef.current as any)?.goForward?.()}
-        onReload={() => (webviewRef.current as any)?.reload?.()}
+        onBack={() => webviewRef.current?.goBack?.()}
+        onForward={() => webviewRef.current?.goForward?.()}
+        onReload={() => webviewRef.current?.reload?.()}
         onOpenPalette={() => setPaletteOpen(true)}
         onNavigate={(url) => navigateCurrent(url)}
       />
@@ -230,7 +291,17 @@ export default function BrowserPage() {
             history={history}
             downloads={downloads}
             onToggleCollapsed={() => setCollapsed(v => !v)}
-            onSelect={setActiveId}
+            onSelect={async (id) => {
+              setActiveId(id)
+              // Set active tab in BrowserView
+              const browserViewTabId = tabIdMap[id]
+              if (browserViewTabId !== undefined) {
+                const electronAPI = (window as any).electronAPI
+                if (electronAPI?.setActiveTab) {
+                  await electronAPI.setActiveTab(browserViewTabId)
+                }
+              }
+            }}
             onClose={closeTab}
             onNewTab={() => setPaletteOpen(true)}
             onToggleTheme={toggleTheme}
@@ -246,7 +317,8 @@ export default function BrowserPage() {
             <div className="w-full h-full rounded-2xl overflow-hidden border border-neutral-200 dark:border-[#2A2A2A]">
               <BrowserView
                 key={activeTab.id}
-                ref={webviewRef as any}
+                ref={webviewRef}
+                tabId={tabIdMap[activeTab.id]} // Pass the BrowserView tab ID
                 src={activeTab.url}
                 className="w-full h-full rounded-2xl"
                 onUrlChange={(u) => {
@@ -277,7 +349,17 @@ export default function BrowserPage() {
             open={paletteOpen}
             onClose={() => setPaletteOpen(false)}
             tabs={tabs.map(t => ({ ...t, title: titleMap[t.id] || t.title }))}
-            onSelectTab={(id) => { setActiveId(id) }}
+            onSelectTab={async (id) => { 
+              setActiveId(id)
+              // Set active tab in BrowserView
+              const browserViewTabId = tabIdMap[id]
+              if (browserViewTabId !== undefined) {
+                const electronAPI = (window as any).electronAPI
+                if (electronAPI?.setActiveTab) {
+                  await electronAPI.setActiveTab(browserViewTabId)
+                }
+              }
+            }}
             onSearch={(q) => {
               // Toujours ouvrir dans un nouvel onglet lorsqu'on recherche via la palette
               openTab(q)

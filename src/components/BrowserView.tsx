@@ -1,6 +1,7 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useState } from 'react'
 
 type Props = {
+  tabId?: number // Receive tabId from parent instead of creating one
   src: string
   className?: string
   onUrlChange?: (url: string) => void
@@ -20,94 +21,53 @@ export type BrowserViewHandle = {
 } | null
 
 const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
-  { src, className, onUrlChange, onTitleChange, onDownload },
+  { tabId: externalTabId, src, className, onUrlChange, onTitleChange, onDownload },
   ref
 ) {
-  const [tabId, setTabId] = useState<number | null>(null)
   const [currentUrl, setCurrentUrl] = useState(src)
   const [currentTitle, setCurrentTitle] = useState('')
 
   // Create enhanced handle that works with BrowserView backend
   useImperativeHandle(ref, () => ({
     loadURL: (url: string) => {
-      if (tabId !== null) {
-        ;(window as any).electronAPI?.navigateTab(tabId, url)
+      if (externalTabId !== undefined) {
+        ;(window as any).electronAPI?.navigateTab(externalTabId, url)
       }
     },
     goBack: () => {
-      if (tabId !== null) {
-        ;(window as any).electronAPI?.tabAction(tabId, 'back')
+      if (externalTabId !== undefined) {
+        ;(window as any).electronAPI?.tabAction(externalTabId, 'back')
       }
     },
     goForward: () => {
-      if (tabId !== null) {
-        ;(window as any).electronAPI?.tabAction(tabId, 'forward')
+      if (externalTabId !== undefined) {
+        ;(window as any).electronAPI?.tabAction(externalTabId, 'forward')
       }
     },
     reload: () => {
-      if (tabId !== null) {
-        ;(window as any).electronAPI?.tabAction(tabId, 'reload')
+      if (externalTabId !== undefined) {
+        ;(window as any).electronAPI?.tabAction(externalTabId, 'reload')
       }
     },
     stop: () => {
-      if (tabId !== null) {
-        ;(window as any).electronAPI?.tabAction(tabId, 'stop')
+      if (externalTabId !== undefined) {
+        ;(window as any).electronAPI?.tabAction(externalTabId, 'stop')
       }
     },
     getURL: () => currentUrl,
     getTitle: () => currentTitle
   }))
 
-  // Create and manage BrowserView tab
+  // Handle URL changes when src prop changes
   useEffect(() => {
-    let mounted = true
-    
-    const initializeTab = async () => {
-      try {
-        const electronAPI = (window as any).electronAPI
-        if (!electronAPI) {
-          console.warn('electronAPI not available, falling back to webview')
-          return
-        }
-        
-        // Create new tab with BrowserView backend
-        const tab = await electronAPI.createTab(src)
-        if (!mounted) return
-        
-        if (tab) {
-          setTabId(tab.id)
-          setCurrentUrl(tab.url)
-          setCurrentTitle(tab.title)
-          
-          // Set as active tab
-          await electronAPI.setActiveTab(tab.id)
-        }
-      } catch (error) {
-        console.error('Failed to create BrowserView tab:', error)
-      }
+    if (externalTabId !== undefined && src !== currentUrl) {
+      ;(window as any).electronAPI?.navigateTab(externalTabId, src)
     }
-    
-    initializeTab()
-    
-    return () => {
-      mounted = false
-      // Cleanup: close tab when component unmounts
-      if (tabId !== null) {
-        ;(window as any).electronAPI?.closeTab(tabId)
-      }
-    }
-  }, [])
-  
-  // Handle URL changes
-  useEffect(() => {
-    if (tabId !== null && src !== currentUrl) {
-      ;(window as any).electronAPI?.navigateTab(tabId, src)
-    }
-  }, [src, tabId, currentUrl])
+  }, [src, externalTabId, currentUrl])
 
   // Listen to BrowserView tab events
   useEffect(() => {
-    if (tabId === null) return
+    if (externalTabId === undefined) return
     
     const electronAPI = (window as any).electronAPI
     if (!electronAPI) return
@@ -117,7 +77,7 @@ const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
     
     // Navigation events
     const offNavigation = electronAPI.onTabNavigation?.((data: any) => {
-      if (data.tabId === tabId) {
+      if (data.tabId === externalTabId) {
         setCurrentUrl(data.url)
         onUrlChange?.(data.url)
       }
@@ -126,7 +86,7 @@ const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
     
     // Title updates
     const offTitle = electronAPI.onTabTitleUpdated?.((data: any) => {
-      if (data.tabId === tabId) {
+      if (data.tabId === externalTabId) {
         setCurrentTitle(data.title)
         onTitleChange?.(data.title)
       }
@@ -135,7 +95,7 @@ const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
     
     // Download events
     const offDownload = electronAPI.onTabDownloadStarted?.((data: any) => {
-      if (data.tabId === tabId) {
+      if (data.tabId === externalTabId) {
         onDownload?.(data.filename, data.url, data.totalBytes)
       }
     })
@@ -144,7 +104,7 @@ const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
     return () => {
       cleanupFns.forEach(cleanup => cleanup())
     }
-  }, [tabId, onUrlChange, onTitleChange, onDownload])
+  }, [externalTabId, onUrlChange, onTitleChange, onDownload])
 
 
   // Render placeholder div - actual content is handled by BrowserView backend
@@ -153,7 +113,7 @@ const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
       className={`${className || ''} bg-white dark:bg-neutral-900 flex items-center justify-center`}
       style={{ width: '100%', height: '100%' }}
     >
-      {tabId === null ? (
+      {externalTabId === undefined ? (
         <div className="text-neutral-500 dark:text-neutral-400">
           Loading...
         </div>
