@@ -69,9 +69,6 @@ export default function BrowserPage() {
       visitedAt: new Date()
     }
     
-    // Détecter si c'est un téléchargement potentiel
-    detectDownload(url)
-    
     setHistory(prev => {
       // Éviter les doublons récents (même URL dans les 5 dernières minutes)
       const recentDuplicate = prev.find(entry => 
@@ -130,41 +127,6 @@ export default function BrowserPage() {
     addDownload(randomFile.filename, randomFile.url, randomFile.size)
   }
 
-  // Détecte les téléchargements automatiquement basé sur les URLs
-  function detectDownload(url: string) {
-    console.log('🔍 Checking URL for download:', url)
-    const downloadExtensions = ['.pdf', '.zip', '.rar', '.dmg', '.exe', '.jpg', '.png', '.gif', '.mp4', '.mp3', '.doc', '.docx', '.xlsx', '.pptx', '.csv', '.txt']
-    const hasDownloadExtension = downloadExtensions.some(ext => url.toLowerCase().includes(ext))
-    
-    console.log('📥 Has download extension:', hasDownloadExtension)
-    
-    if (hasDownloadExtension) {
-      const filename = url.split('/').pop()?.split('?')[0] || 'download'
-      const estimatedSize = Math.floor(Math.random() * 10000000) + 100000 // Taille estimée
-      console.log('📁 Adding download:', filename, url)
-      addDownload(filename, url, estimatedSize)
-    }
-
-    // Détecter aussi les téléchargements par patterns dans l'URL
-    const downloadPatterns = [
-      '/download/',
-      '/downloads/',
-      '/files/',
-      '/attachments/',
-      'download.php',
-      'get.php',
-      'file.php'
-    ]
-    
-    const hasDownloadPattern = downloadPatterns.some(pattern => url.toLowerCase().includes(pattern))
-    
-    if (hasDownloadPattern && !hasDownloadExtension) {
-      const filename = url.split('/').pop()?.split('?')[0] || `download_${Date.now()}`
-      const estimatedSize = Math.floor(Math.random() * 5000000) + 500000
-      console.log('📁 Adding download by pattern:', filename, url)
-      addDownload(filename, url, estimatedSize)
-    }
-  }
 
   function handleDownloadSelect(entry: DownloadEntry) {
     // Ouvrir le dossier Downloads de l'utilisateur (dossier par défaut de Chromium)
