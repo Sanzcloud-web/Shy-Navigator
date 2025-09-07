@@ -2,7 +2,7 @@ import clsx from 'clsx'
 import { getDomainName } from '../lib/favicon'
 import { Moon, Sun, Archive } from 'lucide-react'
 import { motion, AnimatePresence } from 'framer-motion'
-import NavigationView, { type DownloadEntry, type NavigationCategory } from './NavigationView'
+import NavigationView, { type DownloadEntry } from './NavigationView'
 import type { HistoryEntry } from './ArchiveView'
 
 export type Tab = {
@@ -19,7 +19,6 @@ type Props = {
   sidebarHovered?: boolean
   isDark?: boolean
   showNavigation?: boolean
-  navigationCategory?: NavigationCategory
   history?: HistoryEntry[]
   downloads?: DownloadEntry[]
   onToggleCollapsed: () => void
@@ -28,7 +27,6 @@ type Props = {
   onNewTab: () => void
   onToggleTheme?: () => void
   onToggleNavigation?: () => void
-  onNavigationCategoryChange?: (category: NavigationCategory) => void
   onHistorySelect?: (entry: HistoryEntry) => void
   onDownloadSelect?: (entry: DownloadEntry) => void
   onTestDownload?: () => void
@@ -41,7 +39,6 @@ export default function Sidebar({
   sidebarHovered, 
   isDark, 
   showNavigation, 
-  navigationCategory = 'history',
   history = [], 
   downloads = [],
   onToggleCollapsed, 
@@ -50,7 +47,6 @@ export default function Sidebar({
   onNewTab, 
   onToggleTheme, 
   onToggleNavigation, 
-  onNavigationCategoryChange,
   onHistorySelect,
   onDownloadSelect,
   onTestDownload
@@ -75,14 +71,9 @@ export default function Sidebar({
             className="h-full"
           >
             <NavigationView
-              activeCategory={navigationCategory}
               history={history}
-              downloads={downloads}
               onBack={onToggleNavigation || (() => {})}
-              onCategoryChange={onNavigationCategoryChange || (() => {})}
               onSelectEntry={onHistorySelect || (() => {})}
-              onSelectDownload={onDownloadSelect || (() => {})}
-              onTestDownload={onTestDownload}
               isVisible={isVisible}
             />
           </motion.div>

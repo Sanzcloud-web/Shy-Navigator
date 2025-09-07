@@ -104,9 +104,16 @@ export default function TopBar({ collapsed, currentUrl, onToggleSidebar, onBack,
 
         {/* Espace réservé à droite pour actions futures */}
         <div className="absolute inset-y-0 right-0 flex items-center pr-3 no-drag">
-          <div className="size-8 inline-flex items-center justify-center rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200">
+          <button
+            onClick={(e) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect()
+              ;(window as any).shy?.openAppMenu?.({ x: rect.left, y: rect.bottom })
+            }}
+            className="size-8 inline-flex items-center justify-center rounded-full text-neutral-500 dark:text-neutral-400 hover:text-neutral-700 dark:hover:text-neutral-200"
+            title="Menu"
+          >
             <Ellipsis className="w-5 h-5" />
-          </div>
+          </button>
         </div>
         </div>
       </div>

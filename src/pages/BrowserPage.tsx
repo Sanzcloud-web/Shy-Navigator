@@ -173,6 +173,19 @@ export default function BrowserPage() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  // Also handle accelerators fired from the main process (work when webview has focus)
+  useEffect(() => {
+    const offAccel = (window as any).shy?.onAccelerator?.((evt: { type: 'open-palette' | 'toggle-sidebar' }) => {
+      if (evt.type === 'open-palette') setPaletteOpen(true)
+      if (evt.type === 'toggle-sidebar') setCollapsed(v => !v)
+    })
+    const offGlobal = (window as any).shy?.onGlobalShortcut?.((shortcut: 'cmd+t' | 'cmd+s') => {
+      if (shortcut === 'cmd+t') setPaletteOpen(true)
+      if (shortcut === 'cmd+s') setCollapsed(v => !v)
+    })
+    return () => { try { offAccel?.() } catch {}; try { offGlobal?.() } catch {} }
+  }, [])
+
   return (
     <div className="h-full w-full bg-white dark:bg-[#1F1F1F] text-neutral-900 dark:text-neutral-100">
       <TopBar
