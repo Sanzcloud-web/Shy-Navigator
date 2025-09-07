@@ -1,115 +1,52 @@
 import { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
+import type { WebviewTag } from 'electron'
+import type { Tab } from '../browser'
 
 type Props = {
   src: string
   className?: string
-  browserViewId?: number // ID of the BrowserView tab
+  tabInstance?: Tab
   onUrlChange?: (url: string) => void
   onTitleChange?: (title: string) => void
   onDownload?: (filename: string, url: string, size: number) => void
 }
 
-// Handle to control the BrowserView in main via IPC
-export type BrowserViewHandle = {
-  loadURL: (url: string) => Promise<void>
-  goBack: () => Promise<void>
-  goForward: () => Promise<void>
-  reload: () => Promise<void>
-  stop: () => Promise<void>
-  getURL: () => string
-  getTitle: () => string
-} | null
+export type BrowserViewHandle = WebviewTag | null
 
 const BrowserView = forwardRef<BrowserViewHandle, Props>(function BrowserView(
-  { src, className, browserViewId },
+  { src, className, tabInstance, onUrlChange, onTitleChange, onDownload },
   ref
 ) {
-  const containerRef = useRef<HTMLDivElement | null>(null)
+  const wvRef = useRef<WebviewTag | null>(null)
 
-  // Measure container and send bounds to main so BrowserView fits this area
+  useImperativeHandle(ref, () => wvRef.current)
+
+  // Connect Tab instance to webview element
   useEffect(() => {
-    if (!browserViewId) return
-    const el = containerRef.current
-    if (!el) return
-    const sendBounds = () => {
-      try {
-        const rect = el.getBoundingClientRect()
-        const electronAPI = (window as any).electronAPI
-        electronAPI?.setTabBounds?.(browserViewId, {
-          x: Math.round(rect.left),
-          y: Math.round(rect.top),
-          width: Math.max(1, Math.round(rect.width)),
-          height: Math.max(1, Math.round(rect.height))
-        })
-      } catch {}
-    }
-    // Initial
-    sendBounds()
-    // Observe size changes
-    const ro = new ResizeObserver(() => sendBounds())
-    ro.observe(el)
-    // Also on window resize/scroll (in case layout shifts)
-    const onResize = () => sendBounds()
-    const onScroll = () => sendBounds()
-    window.addEventListener('resize', onResize)
-    window.addEventListener('scroll', onScroll, true)
-    return () => {
-      try { ro.disconnect() } catch {}
-      window.removeEventListener('resize', onResize)
-      window.removeEventListener('scroll', onScroll, true)
-    }
-  }, [browserViewId])
+    const wv = wvRef.current
+    if (!wv || !tabInstance) return
+    tabInstance.setWebviewElement(wv as unknown as HTMLWebViewElement, {
+      onNavigation: (url) => onUrlChange?.(url),
+      onTitleUpdated: (title) => onTitleChange?.(title),
+      onFaviconUpdated: () => {},
+      onLoadingState: () => {},
+      onDownloadStarted: (filename, url, totalBytes) => onDownload?.(filename, url, totalBytes)
+    })
+    return () => tabInstance.destroy()
+  }, [tabInstance, onUrlChange, onTitleChange, onDownload])
 
-  // Expose a small imperative API bound to this BrowserView tab
-  useImperativeHandle(ref, () => ({
-    loadURL: async (url: string) => {
-      if (browserViewId) {
-        const electronAPI = (window as any).electronAPI
-        if (electronAPI?.navigateTab) await electronAPI.navigateTab(browserViewId, url)
-      }
-    },
-    goBack: async () => {
-      if (browserViewId) {
-        const electronAPI = (window as any).electronAPI
-        if (electronAPI?.tabAction) await electronAPI.tabAction(browserViewId, 'back')
-      }
-    },
-    goForward: async () => {
-      if (browserViewId) {
-        const electronAPI = (window as any).electronAPI
-        if (electronAPI?.tabAction) await electronAPI.tabAction(browserViewId, 'forward')
-      }
-    },
-    reload: async () => {
-      if (browserViewId) {
-        const electronAPI = (window as any).electronAPI
-        if (electronAPI?.tabAction) await electronAPI.tabAction(browserViewId, 'reload')
-      }
-    },
-    stop: async () => {
-      if (browserViewId) {
-        const electronAPI = (window as any).electronAPI
-        if (electronAPI?.tabAction) await electronAPI.tabAction(browserViewId, 'stop')
-      }
-    },
-    getURL: () => src,
-    getTitle: () => 'Shy Navigator'
-  }))
-
-  // Render an invisible container reserving space for the BrowserView.
-  // The actual web content is displayed by Electron's BrowserView beneath the UI.
+  // Do not trigger loadURL here; <webview src> controls navigation
   return (
-    <div
-      ref={containerRef}
-      className={`${className || ''} bg-transparent relative pointer-events-none`}
-      style={{ width: '100%', height: '100%' }}
-    >
-      {!browserViewId && (
-        <div className="absolute inset-0 flex items-center justify-center text-neutral-500 dark:text-neutral-400 bg-white dark:bg-neutral-900 pointer-events-none">
-          Loading browser view...
-        </div>
-      )}
-    </div>
+    // @ts-ignore
+    <webview
+      ref={wvRef as any}
+      src={src}
+      className={className || ''}
+      allowpopups={true}
+      nodeintegration={false}
+      webpreferences="contextIsolation=true,nodeIntegration=false,nodeIntegrationInWorker=false,nodeIntegrationInSubFrames=false,sandbox=true,spellcheck=true,enableWebSQL=false"
+      useragent="Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/127.0.0.0 Safari/537.36"
+    />
   )
 })
 

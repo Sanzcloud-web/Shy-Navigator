@@ -2,7 +2,6 @@ import { app, BrowserWindow, session, globalShortcut, Menu, ipcMain } from 'elec
 import * as path from 'node:path'
 import * as url from 'node:url'
 import 'dotenv/config'
-import { TabbedBrowserWindow } from './browser/TabbedBrowserWindow'
 
 const isDev = !!process.env.VITE_DEV_SERVER_URL
 
@@ -39,43 +38,25 @@ app.commandLine.appendSwitch('no-first-run')
 app.commandLine.appendSwitch('no-default-browser-check')
 app.commandLine.appendSwitch('disable-default-apps')
 
-// Global browser windows storage
-let browserWindows: TabbedBrowserWindow[] = []
-
 function createWindow() {
-  // Create tabbed browser window
-  const tabbedWindow = new TabbedBrowserWindow({
-    window: {
-      width: 1200,
-      height: 800,
-      title: 'Shy Navigator',
-      webPreferences: {
-        preload: path.join(__dirname, 'preload.js'),
-        contextIsolation: true,
-        nodeIntegration: false,
-        sandbox: true,
-        allowRunningInsecureContent: false,
-        experimentalFeatures: true,
-        spellcheck: true,
-        enableWebSQL: false
-      },
-      titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
-      titleBarOverlay: process.platform === 'darwin' ? { color: '#ffffff', symbolColor: '#000000', height: 40 } as any : undefined,
-      backgroundColor: '#ffffff'
+  const win = new BrowserWindow({
+    width: 1200,
+    height: 800,
+    title: 'Shy Navigator',
+    webPreferences: {
+      preload: path.join(__dirname, 'preload.js'),
+      contextIsolation: true,
+      nodeIntegration: false,
+      sandbox: true,
+      webviewTag: true,
+      allowRunningInsecureContent: false,
+      experimentalFeatures: true,
+      spellcheck: true,
+      enableWebSQL: false
     },
-    session: session.defaultSession
-  })
-
-  // Add to global storage and keep BrowserWindow ref for menus/loads
-  browserWindows.push(tabbedWindow)
-  const win = tabbedWindow.window
-
-  win.on('closed', () => {
-    const index = browserWindows.findIndex(bw => bw.window === win)
-    if (index !== -1) {
-      browserWindows[index].destroy()
-      browserWindows.splice(index, 1)
-    }
+    titleBarStyle: process.platform === 'darwin' ? 'hiddenInset' : 'default',
+    titleBarOverlay: process.platform === 'darwin' ? { color: '#ffffff', symbolColor: '#000000', height: 40 } as any : undefined,
+    backgroundColor: '#ffffff'
   })
 
   // Build and set a basic app menu with useful roles and accelerators
@@ -403,105 +384,7 @@ app.whenReady().then(async () => {
     return os.homedir()
   })
 
-  // Enhanced BrowserView integration IPC handlers
-  ipcMain.handle('browser-create-tab', async (event, url?: string) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return null
-    
-    const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return null
-    
-    const tab = tabbedWindow.createTab(url)
-    return {
-      id: tab.id,
-      url: tab.url,
-      title: tab.title,
-      favicon: tab.favicon
-    }
-  })
-  
-  ipcMain.handle('browser-close-tab', async (event, tabId: number) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return false
-    
-    const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return false
-    
-    return tabbedWindow.closeTab(tabId)
-  })
-  
-  ipcMain.handle('browser-set-active-tab', async (event, tabId: number) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return false
-    
-    const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return false
-    
-    const tab = tabbedWindow.getTabById(tabId)
-    if (!tab) return false
-    
-    tabbedWindow.setActiveTab(tab)
-    return true
-  })
-  
-  ipcMain.handle('browser-navigate-tab', async (event, tabId: number, url: string) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return false
-    
-    const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return false
-    
-    const tab = tabbedWindow.getTabById(tabId)
-    if (!tab) return false
-    
-    tab.loadURL(url)
-    return true
-  })
-  
-  ipcMain.handle('browser-tab-action', async (event, tabId: number, action: 'back' | 'forward' | 'reload' | 'stop') => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return false
-    
-    const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return false
-    
-    const tab = tabbedWindow.getTabById(tabId)
-    if (!tab) return false
-    
-    switch (action) {
-      case 'back': tab.goBack(); break
-      case 'forward': tab.goForward(); break
-      case 'reload': tab.reload(); break
-      case 'stop': tab.stop(); break
-    }
-    return true
-  })
-
-  // Set BrowserView bounds from renderer-measured container
-  ipcMain.handle('browser-set-tab-bounds', async (event, tabId: number, bounds: { x: number; y: number; width: number; height: number }) => {
-    const win = BrowserWindow.fromWebContents(event.sender)
-    if (!win) return false
-    const tabbedWindow = browserWindows.find(bw => bw.window === win)
-    if (!tabbedWindow) return false
-    const tab = tabbedWindow.getTabById(tabId)
-    if (!tab) return false
-    try {
-      tab.view.setBounds({
-        x: Math.max(0, Math.floor(bounds.x)),
-        y: Math.max(0, Math.floor(bounds.y)),
-        width: Math.max(1, Math.floor(bounds.width)),
-        height: Math.max(1, Math.floor(bounds.height)),
-      })
-      // Ensure it’s on top when active
-      if (tabbedWindow.activeTab === tab) {
-        tabbedWindow.window.setTopBrowserView(tab.view)
-      }
-      return true
-    } catch (e) {
-      console.error('Failed to set tab bounds', e)
-      return false
-    }
-  })
+  // Note: renderer manages tabs via <webview>; no BrowserView IPC required
 
   console.log('✅ Native context menu configured successfully')
 

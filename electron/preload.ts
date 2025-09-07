@@ -42,6 +42,9 @@ contextBridge.exposeInMainWorld('electronAPI', {
     ipcRenderer.invoke('browser-tab-action', tabId, action),
   setTabBounds: (tabId: number, bounds: { x: number; y: number; width: number; height: number }) =>
     ipcRenderer.invoke('browser-set-tab-bounds', tabId, bounds),
+  setTabVisible: (tabId: number, visible: boolean) =>
+    ipcRenderer.invoke('browser-tab-set-visible', tabId, visible),
+  captureTab: (tabId: number) => ipcRenderer.invoke('browser-capture-tab', tabId),
   // Events from tabs
   onTabNavigation: (callback: (data: any) => void) => {
     const listener = (_: any, data: any) => callback(data)
