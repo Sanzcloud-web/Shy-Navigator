@@ -94,11 +94,9 @@ export class Tab {
       try {
         const webContents = (wv as any).getWebContents?.()
         if (webContents) {
-          // Setup context menu
+          // Setup context menu (handled in main via common helper)
           const electronAPI = (window as any).electronAPI
-          if (electronAPI?.setupWebviewContextMenu) {
-            electronAPI.setupWebviewContextMenu(webContents.id)
-          }
+          try { electronAPI?.setupWebviewContextMenu?.(webContents.id) } catch {}
 
           // Anti-detection: Complete stealth mode
           webContents.executeJavaScript(`

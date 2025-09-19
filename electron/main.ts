@@ -1,4 +1,5 @@
 import { app, BrowserWindow, session, globalShortcut, Menu, ipcMain } from 'electron'
+import { setupChromeContextMenu } from './contextMenu'
 import * as path from 'node:path'
 import * as url from 'node:url'
 import 'dotenv/config'
@@ -248,105 +249,10 @@ app.whenReady().then(async () => {
     
     callback({ requestHeaders: headers })
   })
-  // Configuration native du menu contextuel pour toutes les webContents
-  const setupNativeContextMenu = (webContents: any) => {
-    webContents.on('context-menu', (_event: any, params: any) => {
-      const { Menu, MenuItem } = require('electron')
-      const menu = new Menu()
-
-      // Cut
-      if (params.editFlags.canCut) {
-        menu.append(new MenuItem({
-          label: 'Cut',
-          accelerator: 'CmdOrCtrl+X',
-          click: () => webContents.cut()
-        }))
-      }
-
-      // Copy
-      if (params.editFlags.canCopy) {
-        menu.append(new MenuItem({
-          label: 'Copy',
-          accelerator: 'CmdOrCtrl+C',
-          click: () => webContents.copy()
-        }))
-      }
-
-      // Paste
-      if (params.editFlags.canPaste) {
-        menu.append(new MenuItem({
-          label: 'Paste',
-          accelerator: 'CmdOrCtrl+V',
-          click: () => webContents.paste()
-        }))
-      }
-
-      // Select All
-      if (params.editFlags.canSelectAll) {
-        menu.append(new MenuItem({ type: 'separator' }))
-        menu.append(new MenuItem({
-          label: 'Select All',
-          accelerator: 'CmdOrCtrl+A',
-          click: () => webContents.selectAll()
-        }))
-      }
-
-      // Image actions
-      if (params.mediaType === 'image') {
-        menu.append(new MenuItem({ type: 'separator' }))
-        menu.append(new MenuItem({
-          label: 'Copy Image',
-          click: () => webContents.copyImageAt(params.x, params.y)
-        }))
-        menu.append(new MenuItem({
-          label: 'Copy Image Address',
-          click: () => {
-            require('electron').clipboard.writeText(params.srcURL)
-          }
-        }))
-      }
-
-      // Link actions
-      if (params.linkURL) {
-        menu.append(new MenuItem({ type: 'separator' }))
-        menu.append(new MenuItem({
-          label: 'Copy Link',
-          click: () => {
-            require('electron').clipboard.writeText(params.linkURL)
-          }
-        }))
-      }
-
-      // Search with Google
-      if (params.selectionText) {
-        menu.append(new MenuItem({ type: 'separator' }))
-        menu.append(new MenuItem({
-          label: `Search Google for "${params.selectionText.substring(0, 20)}${params.selectionText.length > 20 ? '...' : ''}"`,
-          click: () => {
-            require('electron').shell.openExternal(`https://www.google.com/search?q=${encodeURIComponent(params.selectionText)}`)
-          }
-        }))
-      }
-
-      // Inspect Element (dev only)
-      if (isDev) {
-        menu.append(new MenuItem({ type: 'separator' }))
-        menu.append(new MenuItem({
-          label: 'Inspect Element',
-          click: () => webContents.inspectElement(params.x, params.y)
-        }))
-      }
-
-      if (menu.items.length > 0) {
-        menu.popup()
-      }
-    })
-  }
-
   // Appliquer à la fenêtre principale
   const mainWindow = BrowserWindow.getAllWindows()[0]
   if (mainWindow) {
-    setupNativeContextMenu(mainWindow.webContents)
+    setupChromeContextMenu(mainWindow.webContents, { isDev })
   }
 
   // Handler pour les webviews
@@ -355,7 +261,7 @@ app.whenReady().then(async () => {
       const { webContents } = require('electron')
       const wc = webContents.fromId(webContentsId)
       if (wc) {
-        setupNativeContextMenu(wc)
+        setupChromeContextMenu(wc, { isDev })
         console.log('✅ Native context menu setup for webview:', webContentsId)
       }
     } catch (error) {

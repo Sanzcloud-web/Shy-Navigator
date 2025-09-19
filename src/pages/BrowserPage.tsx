@@ -1,10 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import type { WebviewTag } from 'electron'
-import BrowserView from '../components/BrowserView'
+import BrowserView, { type BrowserViewHandle } from '../components/BrowserView'
 import Sidebar, { type Tab } from '../components/Sidebar'
 import CommandPalette from '../components/CommandPalette'
 import ContextMenu, { createAppMenuItems, type MenuPosition } from '../components/ContextMenu'
-import { TabbedBrowserWindow } from '../browser'
 import { normalizeUrl } from '../lib/url'
 import { getFaviconUrl } from '../lib/favicon'
 import TopBar from '../components/TopBar'
@@ -14,10 +12,7 @@ import type { HistoryEntry } from '../components/ArchiveView'
 import type { DownloadEntry, NavigationCategory } from '../components/NavigationView'
 
 // Renderer-managed webview tabs
-interface EnhancedTab extends Tab {
-  tabInstance?: import('../browser').Tab
-  isLoading?: boolean
-}
+interface EnhancedTab extends Tab { isLoading?: boolean }
 
 export default function BrowserPage() {
   const [tabs, setTabs] = useState<EnhancedTab[]>([])
@@ -32,10 +27,10 @@ export default function BrowserPage() {
   const [downloads, setDownloads] = useState<DownloadEntry[]>([])
   const [menuOpen, setMenuOpen] = useState(false)
   const [menuPosition, setMenuPosition] = useState<MenuPosition>({ x: 0, y: 0 })
-  const webviewRef = useRef<WebviewTag | null>(null)
+  const webviewRef = useRef<BrowserViewHandle>(null)
   const { isDark, toggleTheme } = useTheme()
 
-  const browserWindow = useRef(new TabbedBrowserWindow({}))
+  // Pure React state; no external tab manager
 
   const activeTab = useMemo(() => tabs.find(t => t.id === activeId), [tabs, activeId])
 
@@ -43,16 +38,13 @@ export default function BrowserPage() {
     const u = normalizeUrl(url || '')
     const id = crypto.randomUUID()
     const favicon = getFaviconUrl(u)
-    const tabInstance = browserWindow.current.createTab(u, id)
-    const t: EnhancedTab = { id, url: u, title: 'New Tab', favicon, tabInstance, isLoading: false }
+    const t: EnhancedTab = { id, url: u, title: 'New Tab', favicon, isLoading: false }
     setTabs(prev => [t, ...prev])
     setActiveId(id)
     if (url && url.trim()) addToHistory(u)
   }
 
   function closeTab(id: string) {
-    const tab = tabs.find(t => t.id === id)
-    if (tab?.tabInstance) browserWindow.current.closeTab(tab.tabInstance.id)
     setTabs(prev => prev.filter(t => t.id !== id))
     if (activeId === id) {
       const rest = tabs.filter(t => t.id !== id)
@@ -64,8 +56,7 @@ export default function BrowserPage() {
   function navigateCurrent(url: string) {
     if (!activeId) { openTab(url); return }
     const u = normalizeUrl(url)
-    const tab = tabs.find(t => t.id === activeId)
-    tab?.tabInstance?.loadURL(u)
+    webviewRef.current?.loadURL(u)
     setTabs(prev => prev.map(t => t.id === activeId ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
     addToHistory(u)
   }
@@ -180,9 +171,9 @@ export default function BrowserPage() {
         collapsed={collapsed}
         currentUrl={activeTab?.url}
         onToggleSidebar={() => setCollapsed(v => !v)}
-        onBack={() => { const t = tabs.find(x => x.id === activeId)?.tabInstance; t?.goBack() }}
-        onForward={() => { const t = tabs.find(x => x.id === activeId)?.tabInstance; t?.goForward() }}
-        onReload={() => { const t = tabs.find(x => x.id === activeId)?.tabInstance; t?.reload() }}
+        onBack={() => webviewRef.current?.goBack()}
+        onForward={() => webviewRef.current?.goForward()}
+        onReload={() => webviewRef.current?.reload()}
         onOpenPalette={() => setPaletteOpen(true)}
         onNavigate={(url) => navigateCurrent(url)}
         onOpenMenu={handleOpenMenu}
@@ -208,11 +199,7 @@ export default function BrowserPage() {
             history={history}
             downloads={downloads}
             onToggleCollapsed={() => setCollapsed(v => !v)}
-            onSelect={(id) => {
-              setActiveId(id)
-              const tab = tabs.find(t => t.id === id)
-              if (tab?.tabInstance) browserWindow.current.setActiveTab(tab.tabInstance)
-            }}
+            onSelect={(id) => setActiveId(id)}
             onClose={closeTab}
             onNewTab={() => setPaletteOpen(true)}
             onToggleTheme={toggleTheme}
@@ -232,7 +219,7 @@ export default function BrowserPage() {
                 key={activeTab.id}
                 ref={webviewRef}
                 src={activeTab.url}
-                tabInstance={activeTab.tabInstance}
+                
                 className="w-full h-full rounded-2xl"
                 onUrlChange={(u) => {
                   setTabs(prev => prev.map(t => t.id === activeTab.id ? { ...t, url: u, favicon: getFaviconUrl(u) } : t))
@@ -255,11 +242,7 @@ export default function BrowserPage() {
             open={paletteOpen}
             onClose={() => setPaletteOpen(false)}
             tabs={tabs.map(t => ({ ...t, title: titleMap[t.id] || t.title }))}
-            onSelectTab={(id) => {
-              setActiveId(id)
-              const tab = tabs.find(t => t.id === id)
-              if (tab?.tabInstance) browserWindow.current.setActiveTab(tab.tabInstance)
-            }}
+            onSelectTab={(id) => setActiveId(id)}
             onSearch={(q) => openTab(q)}
           />
         </div>
@@ -275,4 +258,3 @@ export default function BrowserPage() {
     </div>
   )
 }
-
